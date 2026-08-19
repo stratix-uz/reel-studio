@@ -12,7 +12,7 @@ const STYLES = [
   { id: "3d", label: "3D animatsiya" },
 ];
 
-const DURATIONS = ["4s", "6s", "10s"];
+const DURATIONS = ["5s", "10s"];
 const RATIOS = ["16:9", "9:16", "1:1"];
 
 const BACKEND_URL = "https://reel-studio-production-b994.up.railway.app/api/generate-video";
