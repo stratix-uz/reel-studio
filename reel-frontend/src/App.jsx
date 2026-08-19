@@ -15,7 +15,7 @@ const STYLES = [
 const DURATIONS = ["5s", "10s"];
 const RATIOS = ["16:9", "9:16", "1:1"];
 
-const BACKEND_URL = "https://reel-studio-production-b994.up.railway.app/api/generate-video";
+const BACKEND_BASE = "https://reel-studio-production-b994.up.railway.app";
 
 function Sprocket() {
   return (
@@ -73,7 +73,7 @@ export default function App() {
 
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("cinematic");
-  const [duration, setDuration] = useState("6s");
+  const [duration, setDuration] = useState("5s");
   const [ratio, setRatio] = useState("16:9");
   const [status, setStatus] = useState("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -128,17 +128,31 @@ export default function App() {
     setStatus("generating");
     setErrorMsg("");
     try {
-      const controller = new AbortController();
-      abortRef.current = controller;
-      const res = await fetch(BACKEND_URL, {
+      const startRes = await fetch(`${BACKEND_BASE}/api/generate-video/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, style, duration, ratio, uid: user.uid }),
-        signal: controller.signal,
       });
-      if (!res.ok) throw new Error("Server xatosi: " + res.status);
-      const data = await res.json();
-      if (!data.videoUrl) throw new Error("Video URL topilmadi. Backend javobini tekshiring.");
+      if (!startRes.ok) throw new Error("Server xatosi: " + startRes.status);
+      const startData = await startRes.json();
+      if (!startData.predictionId) throw new Error("Video jarayoni boshlanmadi.");
+
+      const predictionId = startData.predictionId;
+      let videoUrl = null;
+
+      while (!videoUrl) {
+        await new Promise((r) => setTimeout(r, 4000));
+        const pollRes = await fetch(`${BACKEND_BASE}/api/generate-video/status/${predictionId}`);
+        if (!pollRes.ok) throw new Error("Holatni tekshirishda xatolik: " + pollRes.status);
+        const pollData = await pollRes.json();
+
+        if (pollData.status === "succeeded") {
+          videoUrl = pollData.videoUrl;
+        } else if (pollData.status === "failed") {
+          throw new Error(pollData.error || "Video yaratish muvaffaqiyatsiz tugadi");
+        }
+        // aks holda "processing" yoki "starting" — davom etamiz
+      }
 
       const userRef = doc(db, "users", user.uid);
       const newCredits = Math.max(0, (credits ?? 1) - 1);
@@ -146,7 +160,7 @@ export default function App() {
       setCredits(newCredits);
 
       setGallery((g) => [
-        { id: Date.now(), url: data.videoUrl, prompt, style, duration, ratio },
+        { id: Date.now(), url: videoUrl, prompt, style, duration, ratio },
         ...g,
       ]);
       setStatus("done");
@@ -363,7 +377,7 @@ export default function App() {
                         {STYLES.find((s) => s.id === item.style)?.label} · {item.duration} · {item.ratio}
                       </p>
                     </div>
-                    <a
+                    
                       href={item.url}
                       download
                       className="flex items-center gap-1.5 text-[13px] text-[#C9622C] shrink-0 hover:text-[#E8825A] transition-colors"
