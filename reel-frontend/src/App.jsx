@@ -377,7 +377,7 @@ export default function App() {
                         {STYLES.find((s) => s.id === item.style)?.label} · {item.duration} · {item.ratio}
                       </p>
                     </div>
-                    
+                     <a
                       href={item.url}
                       download
                       className="flex items-center gap-1.5 text-[13px] text-[#C9622C] shrink-0 hover:text-[#E8825A] transition-colors"
