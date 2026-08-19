@@ -120,7 +120,7 @@ app.post("/api/click/create-order", (req, res) => {
     status: "pending",
   };
 
-  const returnUrl = "http://localhost:5177";
+  const returnUrl = process.env.FRONTEND_URL || "http://localhost:5177";
   const checkoutUrl = `https://my.click.uz/services/pay?service_id=${CLICK_SERVICE_ID}&merchant_id=${CLICK_MERCHANT_ID}&amount=${amountUzs}&transaction_param=${orderId}&return_url=${encodeURIComponent(returnUrl)}`;
 
   res.json({ checkoutUrl, orderId });
