@@ -15,7 +15,7 @@ const STYLES = [
 const DURATIONS = ["4s", "6s", "10s"];
 const RATIOS = ["16:9", "9:16", "1:1"];
 
-const BACKEND_URL = "http://localhost:3001/api/generate-video";
+const BACKEND_URL = "https://reel-studio-production-b994.up.railway.app/api/generate-video";
 
 function Sprocket() {
   return (

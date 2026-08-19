@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { X, Check, Sparkles, Loader2 } from "lucide-react";
 
-const BACKEND_URL = "http://localhost:3001";
+const BACKEND_URL = "https://reel-studio-production-b994.up.railway.app";
 
 const PLANS = [
   {
