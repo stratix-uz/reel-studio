@@ -5,7 +5,7 @@ const fetch = require("node-fetch");
 const crypto = require("crypto");
 const { initializeApp, cert } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
-const serviceAccount = require("./serviceAccountKey.json");
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 initializeApp({
   credential: cert(serviceAccount),
