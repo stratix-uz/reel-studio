@@ -27,9 +27,9 @@ const INSPIRATION = [
 function BackgroundGlow() {
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-      <div className="absolute -top-20 -left-20 w-[600px] h-[600px] rounded-full opacity-25 blur-[130px]" style={{ background: "#8B5CF6" }} />
-      <div className="absolute -top-20 -right-20 w-[600px] h-[600px] rounded-full opacity-20 blur-[130px]" style={{ background: "#3B82F6" }} />
-      <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] rounded-full opacity-15 blur-[130px]" style={{ background: "#EC4899" }} />
+      <div className="absolute -top-20 -left-20 w-[600px] h-[600px] rounded-full opacity-20 blur-[130px]" style={{ background: "#8B5CF6" }} />
+      <div className="absolute -top-20 -right-20 w-[600px] h-[600px] rounded-full opacity-15 blur-[130px]" style={{ background: "#3B82F6" }} />
+      <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] rounded-full opacity-10 blur-[130px]" style={{ background: "#EC4899" }} />
     </div>
   );
 }
@@ -38,7 +38,7 @@ function Sprocket() {
   return (
     <div className="flex gap-2.5 justify-center py-2">
       {Array.from({ length: 14 }).map((_, i) => (
-        <div key={i} className="w-1.5 h-1.5 rounded-[2px] bg-[#232030]" />
+        <div key={i} className="w-1.5 h-1.5 rounded-[2px] bg-[#E4E4E7]" />
       ))}
     </div>
   );
@@ -46,21 +46,21 @@ function Sprocket() {
 
 function LoginScreen({ onLogin, loading }) {
   return (
-    <div className="min-h-screen w-full bg-[#050509] text-[#F5F3FF] flex items-center justify-center px-6 relative">
+    <div className="min-h-screen w-full bg-[#F7F7FA] text-[#18181B] flex items-center justify-center px-6 relative">
       <BackgroundGlow />
       <div className="max-w-sm w-full text-center relative">
         <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-6" style={{ background: "linear-gradient(135deg, #F97316, #EA580C)" }}>
-          <Clapperboard size={26} className="text-[#050509]" strokeWidth={2} />
+          <Clapperboard size={26} className="text-white" strokeWidth={2} />
         </div>
         <h1 className="text-[28px] tracking-tight mb-2" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
           Reel Studio
         </h1>
-        <p className="text-[14px] text-[#A1A1AA] mb-8">Matndan videoga, bir necha soniyada</p>
+        <p className="text-[14px] text-[#71717A] mb-8">Matndan videoga, bir necha soniyada</p>
 
         <button
           onClick={onLogin}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 py-3.5 rounded-xl text-[15px] font-medium bg-[#0F0D1A] border border-[#232030] hover:border-[#8B5CF6]/50 transition-colors"
+          className="w-full flex items-center justify-center gap-3 py-3.5 rounded-xl text-[15px] font-medium bg-white border border-[#E4E4E7] hover:border-[#8B5CF6]/50 shadow-sm transition-colors"
         >
           {loading ? (
             <Loader2 size={18} className="animate-spin" />
@@ -75,8 +75,8 @@ function LoginScreen({ onLogin, loading }) {
           Google orqali kirish
         </button>
 
-        <p className="text-[12px] text-[#71717A] mt-6">
-          Ro'yxatdan o'tgan har bir kishiga <span className="text-[#A1A1AA]">1 ta bepul video</span> beriladi
+        <p className="text-[12px] text-[#A1A1AA] mt-6">
+          Ro'yxatdan o'tgan har bir kishiga <span className="text-[#71717A]">1 ta bepul video</span> beriladi
         </p>
       </div>
     </div>
@@ -209,8 +209,8 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen w-full bg-[#050509] flex items-center justify-center">
-        <Loader2 size={24} className="animate-spin text-[#71717A]" />
+      <div className="min-h-screen w-full bg-[#F7F7FA] flex items-center justify-center">
+        <Loader2 size={24} className="animate-spin text-[#A1A1AA]" />
       </div>
     );
   }
@@ -220,51 +220,50 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#050509] text-[#F5F3FF] relative" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div className="min-h-screen w-full bg-[#F7F7FA] text-[#18181B] relative" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes pulse-dot { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
-        ::selection { background: #8B5CF6; color: #F5F3FF; }
-        ::placeholder { color: #71717A; }
-        textarea, select { color-scheme: dark; }
+        ::selection { background: #8B5CF6; color: #FFFFFF; }
+        ::placeholder { color: #A1A1AA; }
       `}</style>
 
       <BackgroundGlow />
 
-      <header className="border-b border-[#1A1725] relative">
+      <header className="border-b border-[#E4E4E7] relative bg-white/70 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg, #F97316, #EA580C)" }}>
-                <Clapperboard size={18} className="text-[#050509]" strokeWidth={2} />
+                <Clapperboard size={18} className="text-white" strokeWidth={2} />
               </div>
               <span className="text-[18px] tracking-tight" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
                 Reel Studio
               </span>
             </div>
-            <nav className="hidden md:flex items-center gap-6 text-[13px] text-[#A1A1AA]">
-              <span className="text-[#F5F3FF] font-medium">Yaratish</span>
-              <span className="hover:text-[#F5F3FF] transition-colors cursor-pointer">Mening videolarim</span>
-              <span className="hover:text-[#F5F3FF] transition-colors cursor-pointer">Ilhom</span>
+            <nav className="hidden md:flex items-center gap-6 text-[13px] text-[#71717A]">
+              <span className="text-[#18181B] font-medium">Yaratish</span>
+              <span className="hover:text-[#18181B] transition-colors cursor-pointer">Mening videolarim</span>
+              <span className="hover:text-[#18181B] transition-colors cursor-pointer">Ilhom</span>
             </nav>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowPricing(true)}
               className="hidden sm:flex items-center gap-1.5 text-[12px] font-medium rounded-full px-3 py-1.5 transition-colors"
-              style={{ background: "rgba(249,115,22,0.1)", color: "#FB923C", border: "1px solid rgba(249,115,22,0.3)" }}
+              style={{ background: "rgba(249,115,22,0.08)", color: "#EA580C", border: "1px solid rgba(249,115,22,0.25)" }}
             >
               <Sparkles size={12} />
               {credits ?? 0} kredit
             </button>
             <button
               onClick={() => setShowPricing(true)}
-              className="text-[13px] text-[#A1A1AA] border border-transparent hover:border-[#8B5CF6] hover:text-[#A855F7] rounded-full px-3 py-1.5 transition-colors"
+              className="text-[13px] text-[#71717A] border border-transparent hover:border-[#8B5CF6] hover:text-[#7C3AED] rounded-full px-3 py-1.5 transition-colors"
             >
               Tariflar
             </button>
-            {user.photoURL && <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full border border-[#232030]" />}
-            <button onClick={handleLogout} className="text-[#71717A] hover:text-[#A1A1AA] transition-colors" aria-label="Chiqish">
+            {user.photoURL && <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full border border-[#E4E4E7]" />}
+            <button onClick={handleLogout} className="text-[#A1A1AA] hover:text-[#71717A] transition-colors" aria-label="Chiqish">
               <LogOut size={18} />
             </button>
           </div>
@@ -278,7 +277,7 @@ export default function App() {
               className="text-[34px] sm:text-[44px] leading-[1.1] tracking-tight mb-4"
               style={{
                 fontFamily: "Georgia, 'Times New Roman', serif",
-                background: "linear-gradient(135deg, #F5F3FF, #A855F7 60%, #3B82F6)",
+                background: "linear-gradient(135deg, #18181B, #7C3AED 60%, #2563EB)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
@@ -286,21 +285,19 @@ export default function App() {
             >
               Tasavvuringizni videoga aylantiring
             </h1>
-            <p className="text-[15px] text-[#A1A1AA] mb-8 max-w-md">
+            <p className="text-[15px] text-[#71717A] mb-8 max-w-md">
               Birgina g'oyadan professional, kinematik AI video yarating.
             </p>
 
             <div
-              className="rounded-2xl overflow-hidden"
+              className="rounded-2xl overflow-hidden bg-white"
               style={{
-                border: "1px solid rgba(139,92,246,.35)",
-                background: "rgba(20,18,30,.75)",
-                backdropFilter: "blur(20px)",
-                boxShadow: "0 0 40px rgba(139,92,246,.10)",
+                border: "1px solid #E4E4E7",
+                boxShadow: "0 4px 30px rgba(139,92,246,.08)",
               }}
             >
               <div className="px-6 pt-6 pb-2">
-                <label className="flex items-center gap-2 text-[12px] font-medium tracking-[0.08em] uppercase mb-3" style={{ color: "#A855F7" }}>
+                <label className="flex items-center gap-2 text-[12px] font-medium tracking-[0.08em] uppercase mb-3" style={{ color: "#7C3AED" }}>
                   <Sparkles size={13} strokeWidth={2.5} />
                   Sahnani tasvirlang
                 </label>
@@ -309,19 +306,19 @@ export default function App() {
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Masalan: quyosh botayotganda cho'lda yurayotgan tuya, kinematik yorug'lik, sekin harakat, oltin rang..."
                   rows={5}
-                  className="w-full bg-transparent text-[15px] leading-relaxed outline-none resize-none min-h-[110px]"
+                  className="w-full bg-transparent text-[15px] leading-relaxed outline-none resize-none min-h-[110px] text-[#18181B]"
                 />
               </div>
 
-              <div className="border-t border-[#232030] px-6 py-5 grid grid-cols-3 gap-3">
+              <div className="border-t border-[#E4E4E7] px-6 py-5 grid grid-cols-3 gap-3">
                 <div>
-                  <label className="flex items-center gap-1.5 text-[11px] text-[#A1A1AA] mb-2 tracking-wide">
+                  <label className="flex items-center gap-1.5 text-[11px] text-[#71717A] mb-2 tracking-wide">
                     <Wand2 size={12} /> STIL
                   </label>
                   <select
                     value={style}
                     onChange={(e) => setStyle(e.target.value)}
-                    className="w-full bg-[#0F0D1A] border border-[#232030] rounded-lg px-2.5 py-2.5 text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer"
+                    className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-2.5 text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]"
                   >
                     {STYLES.map((s) => (
                       <option key={s.id} value={s.id}>{s.label}</option>
@@ -329,13 +326,13 @@ export default function App() {
                   </select>
                 </div>
                 <div>
-                  <label className="flex items-center gap-1.5 text-[11px] text-[#A1A1AA] mb-2 tracking-wide">
+                  <label className="flex items-center gap-1.5 text-[11px] text-[#71717A] mb-2 tracking-wide">
                     <Clock size={12} /> VAQT
                   </label>
                   <select
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
-                    className="w-full bg-[#0F0D1A] border border-[#232030] rounded-lg px-2.5 py-2.5 text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer"
+                    className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-2.5 text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]"
                   >
                     {DURATIONS.map((d) => (
                       <option key={d} value={d}>{d}</option>
@@ -343,13 +340,13 @@ export default function App() {
                   </select>
                 </div>
                 <div>
-                  <label className="flex items-center gap-1.5 text-[11px] text-[#A1A1AA] mb-2 tracking-wide">
+                  <label className="flex items-center gap-1.5 text-[11px] text-[#71717A] mb-2 tracking-wide">
                     <Ratio size={12} /> NISBAT
                   </label>
                   <select
                     value={ratio}
                     onChange={(e) => setRatio(e.target.value)}
-                    className="w-full bg-[#0F0D1A] border border-[#232030] rounded-lg px-2.5 py-2.5 text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer"
+                    className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-2.5 text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]"
                   >
                     {RATIOS.map((r) => (
                       <option key={r} value={r}>{r}</option>
@@ -360,11 +357,11 @@ export default function App() {
             </div>
 
             {credits === 0 && (
-              <div className="mt-4 px-4 py-3 rounded-xl bg-[#2B2112] border border-[#4A3A18] text-[#E8C57A] text-[14px] flex items-center justify-between gap-4">
+              <div className="mt-4 px-4 py-3 rounded-xl bg-[#FEF3C7] border border-[#FDE68A] text-[#92400E] text-[14px] flex items-center justify-between gap-4">
                 <span>Bepul videongiz tugadi.</span>
                 <button
                   onClick={() => setShowPricing(true)}
-                  className="shrink-0 text-[13px] font-medium px-3 py-1.5 rounded-lg bg-[#3A2718] text-[#E8A05A] hover:bg-[#452D1C] transition-colors"
+                  className="shrink-0 text-[13px] font-medium px-3 py-1.5 rounded-lg bg-[#FDE68A] text-[#78350F] hover:bg-[#FCD34D] transition-colors"
                 >
                   Tariflarni ko'rish
                 </button>
@@ -380,11 +377,11 @@ export default function App() {
                   ? {
                       background: "linear-gradient(135deg, #8B5CF6, #3B82F6)",
                       color: "#FFFFFF",
-                      boxShadow: "0 0 30px rgba(139,92,246,.25)",
+                      boxShadow: "0 8px 30px rgba(139,92,246,.25)",
                       border: "none",
                       cursor: "pointer",
                     }
-                  : { background: "#0F0D1A", color: "#71717A", border: "1px solid #232030", cursor: "not-allowed" }
+                  : { background: "#F0F0F3", color: "#A1A1AA", border: "1px solid #E4E4E7", cursor: "not-allowed" }
               }
             >
               {status === "generating" ? (
@@ -401,7 +398,7 @@ export default function App() {
             </button>
 
             {status === "error" && (
-              <div className="mt-4 px-4 py-3 rounded-xl bg-[#2B1225] border border-[#EC4899]/30 text-[#EC4899] text-[14px]">
+              <div className="mt-4 px-4 py-3 rounded-xl bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-[14px]">
                 {errorMsg}
               </div>
             )}
@@ -411,9 +408,8 @@ export default function App() {
             <div
               className="rounded-2xl overflow-hidden aspect-[9/13] flex items-center justify-center relative"
               style={{
-                border: "1px solid rgba(139,92,246,.25)",
-                background: "linear-gradient(160deg, rgba(139,92,246,.12), rgba(59,130,246,.10) 50%, rgba(236,72,153,.10))",
-                backdropFilter: "blur(20px)",
+                border: "1px solid #E4E4E7",
+                background: "linear-gradient(160deg, rgba(139,92,246,.10), rgba(59,130,246,.08) 50%, rgba(236,72,153,.08))",
               }}
             >
               {status === "generating" ? (
@@ -423,18 +419,18 @@ export default function App() {
                     <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" style={{ animation: "pulse-dot 1.2s ease-in-out infinite 0.2s" }} />
                     <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" style={{ animation: "pulse-dot 1.2s ease-in-out infinite 0.4s" }} />
                   </div>
-                  <p className="text-[14px] text-[#A1A1AA]">{styleLabel} uslubida video yaratilmoqda</p>
-                  <p className="text-[12px] text-[#71717A] mt-2">Bu odatda 1-3 daqiqa vaqt oladi</p>
+                  <p className="text-[14px] text-[#71717A]">{styleLabel} uslubida video yaratilmoqda</p>
+                  <p className="text-[12px] text-[#A1A1AA] mt-2">Bu odatda 1-3 daqiqa vaqt oladi</p>
                 </div>
               ) : latestVideo ? (
                 <video src={latestVideo.url} controls className="w-full h-full object-cover" />
               ) : (
                 <div className="text-center px-6">
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ border: "1px solid rgba(139,92,246,.3)" }}>
-                    <Film size={22} className="text-[#A855F7]" />
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-white" style={{ border: "1px solid #E4E4E7" }}>
+                    <Film size={22} className="text-[#7C3AED]" />
                   </div>
-                  <p className="text-[14px] text-[#F5F3FF] font-medium mb-1">Video shu yerda ko'rinadi</p>
-                  <p className="text-[12px] text-[#71717A]">Chapdagi maydonga tasvir yozib boshlang</p>
+                  <p className="text-[14px] text-[#18181B] font-medium mb-1">Video shu yerda ko'rinadi</p>
+                  <p className="text-[12px] text-[#A1A1AA]">Chapdagi maydonga tasvir yozib boshlang</p>
                 </div>
               )}
             </div>
@@ -444,36 +440,35 @@ export default function App() {
         {gallery.length > 1 && (
           <div className="mt-16">
             <div className="flex items-center gap-3 mb-5">
-              <h2 className="text-[13px] font-medium text-[#A1A1AA] tracking-[0.06em] uppercase">Oldingi videolar</h2>
-              <div className="flex-1 h-px bg-[#232030]" />
-              <span className="text-[12px] text-[#71717A]">{gallery.length - 1}</span>
+              <h2 className="text-[13px] font-medium text-[#71717A] tracking-[0.06em] uppercase">Oldingi videolar</h2>
+              <div className="flex-1 h-px bg-[#E4E4E7]" />
+              <span className="text-[12px] text-[#A1A1AA]">{gallery.length - 1}</span>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               {gallery.slice(1).map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-xl overflow-hidden"
-                  style={{ border: "1px solid #232030", background: "rgba(20,18,30,.6)", backdropFilter: "blur(10px)" }}
+                  className="rounded-xl overflow-hidden bg-white"
+                  style={{ border: "1px solid #E4E4E7" }}
                 >
                   <video src={item.url} controls className="w-full block bg-black" style={{ maxHeight: 320 }} />
                   <div className="px-4 py-3.5">
-                    <p className="text-[13px] text-[#A1A1AA] truncate mb-1">{item.prompt}</p>
-                    <p className="text-[11px] text-[#71717A] mb-3">
+                    <p className="text-[13px] text-[#71717A] truncate mb-1">{item.prompt}</p>
+                    <p className="text-[11px] text-[#A1A1AA] mb-3">
                       {STYLES.find((s) => s.id === item.style)?.label} · {item.duration} · {item.ratio}
                     </p>
                     <div className="flex items-center gap-2">
                       
-                        <a
                         href={item.url}
                         download
-                        className="flex items-center gap-1.5 text-[12px] font-medium text-[#F5F3FF] bg-[#0F0D1A] border border-[#232030] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#A855F7] transition-colors"
+                        className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors"
                       >
                         <Download size={13} /> Yuklab olish
                       </a>
                       <button
                         onClick={() => handleRegenerate(item)}
                         disabled={status === "generating" || credits <= 0}
-                        className="flex items-center gap-1.5 text-[12px] font-medium text-[#F5F3FF] bg-[#0F0D1A] border border-[#232030] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#A855F7] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <RefreshCw size={13} /> Qayta yaratish
                       </button>
@@ -488,10 +483,10 @@ export default function App() {
         {gallery.length === 0 && status === "idle" && (
           <div className="mt-20">
             <div className="text-center mb-8">
-              <h2 className="text-[13px] font-medium tracking-[0.08em] uppercase mb-2" style={{ color: "#A855F7" }}>
+              <h2 className="text-[13px] font-medium tracking-[0.08em] uppercase mb-2" style={{ color: "#7C3AED" }}>
                 ✦ Ilhom oling
               </h2>
-              <p className="text-[14px] text-[#71717A]">AI yordamida yaratilgan kinematik videolar</p>
+              <p className="text-[14px] text-[#A1A1AA]">AI yordamida yaratilgan kinematik videolar</p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {INSPIRATION.map((item, i) => (
@@ -499,13 +494,13 @@ export default function App() {
                   key={i}
                   className="rounded-xl overflow-hidden aspect-[3/4] flex items-end p-3 relative group cursor-pointer"
                   style={{
-                    border: "1px solid #232030",
-                    background: `linear-gradient(160deg, rgba(139,92,246,.18), rgba(59,130,246,.12) 50%, rgba(236,72,153,.15))`,
+                    border: "1px solid #E4E4E7",
+                    background: `linear-gradient(160deg, rgba(139,92,246,.12), rgba(59,130,246,.08) 50%, rgba(236,72,153,.10))`,
                   }}
                 >
                   <div className="relative z-10">
-                    <p className="text-[13px] font-medium text-[#F5F3FF]">{item.tag}</p>
-                    <p className="text-[11px] text-[#A1A1AA]">{item.label}</p>
+                    <p className="text-[13px] font-medium text-[#18181B]">{item.tag}</p>
+                    <p className="text-[11px] text-[#71717A]">{item.label}</p>
                   </div>
                 </div>
               ))}
