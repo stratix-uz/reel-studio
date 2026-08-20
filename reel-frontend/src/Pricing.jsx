@@ -38,24 +38,24 @@ export default function Pricing({ onClose, uid, t }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-10 px-4"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-4 sm:py-10 px-3 sm:px-4"
       style={{ background: "rgba(24, 24, 27, 0.45)", backdropFilter: "blur(2px)" }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-4xl bg-white rounded-2xl"
+        className="w-full max-w-4xl bg-white rounded-2xl my-auto sm:my-0"
         style={{ border: "1px solid #E4E4E7", boxShadow: "0 20px 60px rgba(0,0,0,.15)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-8 py-6 border-b border-[#E4E4E7]">
-          <div>
+        <div className="flex items-center justify-between px-5 sm:px-8 py-5 sm:py-6 border-b border-[#E4E4E7]">
+          <div className="pr-3">
             <h2
-              className="text-[22px] tracking-tight text-[#18181B]"
+              className="text-[19px] sm:text-[22px] tracking-tight text-[#18181B]"
               style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
             >
               {translate("pricingTitle")}
             </h2>
-            <p className="text-[13px] text-[#71717A] mt-1 max-w-md">{translate("pricingSubtitle")}</p>
+            <p className="text-[12px] sm:text-[13px] text-[#71717A] mt-1 max-w-md">{translate("pricingSubtitle")}</p>
           </div>
           <button
             onClick={onClose}
@@ -66,12 +66,12 @@ export default function Pricing({ onClose, uid, t }) {
           </button>
         </div>
 
-        <div className="p-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 sm:p-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {PLAN_META.map((plan) => (
               <div
                 key={plan.id}
-                className="rounded-xl bg-[#F7F7FA] p-5 flex flex-col"
+                className="rounded-xl bg-[#F7F7FA] p-4 sm:p-5 flex flex-col"
                 style={{
                   border: plan.featured ? "2px solid #8B5CF6" : "1px solid #E4E4E7",
                   boxShadow: plan.featured ? "0 8px 24px rgba(139,92,246,.15)" : "none",
@@ -85,23 +85,23 @@ export default function Pricing({ onClose, uid, t }) {
                     {translate("mostPopular")}
                   </span>
                 )}
-                <h3 className="text-[16px] text-[#18181B] mb-1">{translate(plan.nameKey)}</h3>
+                <h3 className="text-[15px] sm:text-[16px] text-[#18181B] mb-1">{translate(plan.nameKey)}</h3>
                 <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-[28px] text-[#18181B] leading-none">${plan.price}</span>
-                  <span className="text-[13px] text-[#A1A1AA]">{translate("perMonth")}</span>
+                  <span className="text-[24px] sm:text-[28px] text-[#18181B] leading-none">${plan.price}</span>
+                  <span className="text-[12px] sm:text-[13px] text-[#A1A1AA]">{translate("perMonth")}</span>
                 </div>
-                <p className="text-[12px] text-[#A1A1AA] mb-4">
+                <p className="text-[11px] sm:text-[12px] text-[#A1A1AA] mb-4">
                   {translate("perCredit")} ${plan.perCredit}
                 </p>
 
-                <div className="flex items-center gap-1.5 text-[13px] text-[#71717A] mb-5 pb-5 border-b border-[#E4E4E7]">
+                <div className="flex items-center gap-1.5 text-[12px] sm:text-[13px] text-[#71717A] mb-4 sm:mb-5 pb-4 sm:pb-5 border-b border-[#E4E4E7]">
                   <Sparkles size={13} className="text-[#7C3AED]" />
                   {plan.credits} {translate("creditsPerMonth")}
                 </div>
 
-                <ul className="space-y-2.5 mb-6 flex-1">
+                <ul className="space-y-2 sm:space-y-2.5 mb-5 sm:mb-6 flex-1">
                   {FEATURE_KEYS.map((fKey) => (
-                    <li key={fKey} className="flex items-start gap-2 text-[12.5px] text-[#71717A]">
+                    <li key={fKey} className="flex items-start gap-2 text-[12px] sm:text-[12.5px] text-[#71717A]">
                       <Check size={14} className="text-[#22C55E] shrink-0 mt-0.5" />
                       {translate(fKey)}
                     </li>
@@ -111,7 +111,7 @@ export default function Pricing({ onClose, uid, t }) {
                 <button
                   onClick={() => handleSelectPlan(plan)}
                   disabled={loadingPlan !== null}
-                  className="w-full py-2.5 rounded-lg text-[14px] font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                  className="w-full py-2.5 rounded-lg text-[14px] font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98]"
                   style={
                     plan.featured
                       ? { background: "linear-gradient(135deg, #8B5CF6, #3B82F6)", color: "#FFFFFF" }
@@ -133,7 +133,7 @@ export default function Pricing({ onClose, uid, t }) {
 
           {error && <p className="text-[13px] text-[#DC2626] text-center mt-4">{error}</p>}
 
-          <p className="text-[12px] text-[#A1A1AA] text-center mt-6">{translate("paymentNote")}</p>
+          <p className="text-[11px] sm:text-[12px] text-[#A1A1AA] text-center mt-5 sm:mt-6">{translate("paymentNote")}</p>
         </div>
       </div>
     </div>
