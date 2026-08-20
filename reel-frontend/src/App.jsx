@@ -22,46 +22,21 @@ function BackgroundGlow() {
   );
 }
 
-function LanguageSwitcher({ lang, setLang, compact }) {
-  const [open, setOpen] = useState(false);
-  const current = LANGUAGES.find((l) => l.code === lang);
-
+function LanguageSwitcher({ lang, setLang }) {
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 text-[12px] font-medium text-[#71717A] border border-[#E4E4E7] rounded-full px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors"
+    <div className="relative flex items-center gap-1.5 text-[12px] font-medium text-[#71717A] border border-[#E4E4E7] rounded-full pl-2.5 pr-1.5 py-1.5 hover:border-[#8B5CF6] transition-colors">
+      <Globe size={13} />
+      <select
+        value={lang}
+        onChange={(e) => setLang(e.target.value)}
+        className="bg-transparent text-[12px] font-medium text-[#71717A] outline-none cursor-pointer appearance-none pr-1"
       >
-        <Globe size={13} />
-        {current?.label}
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div
-            className="absolute right-0 mt-1.5 z-50 rounded-lg overflow-hidden bg-white"
-            style={{ border: "1px solid #E4E4E7", boxShadow: "0 8px 24px rgba(0,0,0,.08)" }}
-          >
-            {LANGUAGES.map((l) => (
-              <button
-                key={l.code}
-                onClick={() => {
-                  setLang(l.code);
-                  setOpen(false);
-                }}
-                className="block w-full text-left px-4 py-2 text-[13px] whitespace-nowrap transition-colors"
-                style={
-                  l.code === lang
-                    ? { background: "rgba(139,92,246,0.08)", color: "#7C3AED", fontWeight: 500 }
-                    : { color: "#18181B" }
-                }
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+        {LANGUAGES.map((l) => (
+          <option key={l.code} value={l.code}>
+            {l.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
