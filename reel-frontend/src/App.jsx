@@ -231,7 +231,6 @@ export default function App() {
 
       <BackgroundGlow />
 
-      {/* HEADER */}
       <header className="border-b border-[#1A1725] relative">
         <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-8">
@@ -272,10 +271,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* HERO */}
       <main className="max-w-6xl mx-auto px-6 py-14 relative">
         <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-10 items-start">
-          {/* LEFT: hero text + prompt */}
           <div>
             <h1
               className="text-[34px] sm:text-[44px] leading-[1.1] tracking-tight mb-4"
@@ -410,7 +407,6 @@ export default function App() {
             )}
           </div>
 
-          {/* RIGHT: big visual / preview */}
           <div className="lg:sticky lg:top-8">
             <div
               className="rounded-2xl overflow-hidden aspect-[9/13] flex items-center justify-center relative"
@@ -445,7 +441,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* GENERATED GALLERY (rest, excluding latest shown above) */}
         {gallery.length > 1 && (
           <div className="mt-16">
             <div className="flex items-center gap-3 mb-5">
@@ -489,7 +484,6 @@ export default function App() {
           </div>
         )}
 
-        {/* INSPIRATION GALLERY (only when no generated videos yet) */}
         {gallery.length === 0 && status === "idle" && (
           <div className="mt-20">
             <div className="text-center mb-8">
