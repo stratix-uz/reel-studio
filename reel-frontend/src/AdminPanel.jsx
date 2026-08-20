@@ -6,7 +6,7 @@ import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 const BACKEND_BASE = "https://reel-studio-production-b994.up.railway.app";
 
 // Admin panelga kirish huquqiga ega email(lar)
-const ADMIN_EMAILS = ["Bekxamrayev2024@gmail.com"];
+const ADMIN_EMAILS = ["bekxamrayev2024@gmail.com"];
 
 const PLAN_LABELS = {
   basic: "Asosiy",
