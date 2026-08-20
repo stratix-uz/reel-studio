@@ -463,6 +463,7 @@ export default function App() {
                     </p>
                     <div className="flex items-center gap-2">
                       
+                        <a
                         href={item.url}
                         download
                         className="flex items-center gap-1.5 text-[12px] font-medium text-[#F5F3FF] bg-[#0F0D1A] border border-[#232030] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#A855F7] transition-colors"
