@@ -97,6 +97,10 @@ export const translations = {
     featurePlan2: "16:9, 9:16 va 1:1 nisbatlar",
     featurePlan3: "HD sifatda yuklab olish",
     featurePlan4: "Cheksiz saqlanadigan galereya",
+
+    // Android app
+    downloadApp: "Android uchun yuklab olish",
+    downloadAppShort: "Ilova",
   },
 
   ru: {
@@ -179,6 +183,10 @@ export const translations = {
     featurePlan2: "Соотношения 16:9, 9:16 и 1:1",
     featurePlan3: "Скачивание в HD качестве",
     featurePlan4: "Неограниченная сохранённая галерея",
+
+    // Android app
+    downloadApp: "Скачать для Android",
+    downloadAppShort: "Приложение",
   },
 
   en: {
@@ -261,5 +269,9 @@ export const translations = {
     featurePlan2: "16:9, 9:16 and 1:1 aspect ratios",
     featurePlan3: "HD quality downloads",
     featurePlan4: "Unlimited saved gallery",
+
+    // Android app
+    downloadApp: "Download for Android",
+    downloadAppShort: "App",
   },
 };

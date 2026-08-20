@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X } from "lucide-react";
+import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X, Smartphone } from "lucide-react";
 import { auth, googleProvider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, addDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
@@ -11,6 +11,7 @@ const DURATIONS = ["5s", "10s"];
 const RATIOS = ["16:9", "9:16", "1:1"];
 
 const BACKEND_BASE = "https://reel-studio-production-b994.up.railway.app";
+const APK_URL = "/downloads/reelstudio.apk";
 
 function BackgroundGlow() {
   return (
@@ -128,6 +129,15 @@ function LoginScreen({ onLogin, loading, lang, setLang, t }) {
         <p className="text-[12px] text-[#A1A1AA] mt-6">
           {t("freeVideoNote")} <span className="text-[#71717A]">{t("freeVideoNote2")}</span> {t("freeVideoNote3")}
         </p>
+
+        <a
+          href={APK_URL}
+          download
+          className="mt-4 inline-flex items-center justify-center gap-2 text-[12px] font-medium text-[#71717A] border border-[#E4E4E7] rounded-full px-4 py-2 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors"
+        >
+          <Smartphone size={13} />
+          {t("downloadApp")}
+        </a>
       </div>
     </div>
   );
@@ -378,6 +388,14 @@ export default function App() {
             </nav>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <a
+              href={APK_URL}
+              download
+              className="hidden lg:flex items-center gap-1.5 text-[12px] font-medium text-[#71717A] border border-[#E4E4E7] rounded-full px-3 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors whitespace-nowrap"
+            >
+              <Smartphone size={13} />
+              {t("downloadApp")}
+            </a>
             <div className="hidden sm:block">
               <LanguageSwitcher lang={lang} setLang={handleSetLang} />
             </div>
@@ -440,6 +458,14 @@ export default function App() {
               >
                 {t("pricing")}
               </button>
+              <a
+                href={APK_URL}
+                download
+                className="flex items-center gap-2 text-left px-3 py-2.5 rounded-lg text-[#71717A]"
+              >
+                <Smartphone size={15} />
+                {t("downloadApp")}
+              </a>
             </nav>
             <div className="flex items-center justify-between px-3 pt-3 border-t border-[#E4E4E7]">
               <div className="flex items-center gap-2.5">
