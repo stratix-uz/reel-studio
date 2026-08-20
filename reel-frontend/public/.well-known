@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "uz.reelstudio.twa",
+      "sha256_cert_fingerprints": [
+        "95:36:0A:B0:03:66:CD:81:69:0D:BB:98:0D:00:49:E3:B8:21:ED:AB:FD:6D:B6:59:99:B9:29:C9:A8:81:C3:07"
+      ]
+    }
+  }
+]
