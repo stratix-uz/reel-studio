@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film } from "lucide-react";
 import { auth, googleProvider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, addDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
 import Pricing from "./Pricing";
 
 const STYLES = [
@@ -97,6 +97,7 @@ export default function App() {
   const [errorMsg, setErrorMsg] = useState("");
   const [gallery, setGallery] = useState([]);
   const [showPricing, setShowPricing] = useState(false);
+  const [view, setView] = useState("create"); // "create" | "library" | "inspire"
   const abortRef = useRef(null);
 
   useEffect(() => {
@@ -118,6 +119,16 @@ export default function App() {
         } else {
           setCredits(snap.data().credits);
         }
+
+        try {
+          const videosSnap = await getDocs(
+            query(collection(db, "users", firebaseUser.uid, "videos"), orderBy("createdAt", "desc"))
+          );
+          const loaded = videosSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          setGallery(loaded);
+        } catch (err) {
+          console.error("Videolarni yuklashda xatolik:", err);
+        }
       }
     });
     return () => unsub();
@@ -137,6 +148,7 @@ export default function App() {
     await signOut(auth);
     setGallery([]);
     setCredits(null);
+    setView("create");
   }
 
   const canGenerate = prompt.trim().length > 3 && status !== "generating" && credits > 0;
@@ -175,10 +187,17 @@ export default function App() {
       await setDoc(userRef, { credits: newCredits }, { merge: true });
       setCredits(newCredits);
 
-      setGallery((g) => [
-        { id: Date.now(), url: videoUrl, prompt, style, duration, ratio },
-        ...g,
-      ]);
+      const videoDoc = {
+        url: videoUrl,
+        prompt,
+        style,
+        duration,
+        ratio,
+        createdAt: new Date().toISOString(),
+      };
+      const docRef = await addDoc(collection(db, "users", user.uid, "videos"), videoDoc);
+      setGallery((g) => [{ id: docRef.id, ...videoDoc }, ...g]);
+
       setStatus("done");
     } catch (err) {
       setErrorMsg(
@@ -201,6 +220,7 @@ export default function App() {
     setStyle(item.style);
     setDuration(item.duration);
     setRatio(item.ratio);
+    setView("create");
     await generateVideo();
   }
 
@@ -242,9 +262,24 @@ export default function App() {
               </span>
             </div>
             <nav className="hidden md:flex items-center gap-6 text-[13px] text-[#71717A]">
-              <span className="text-[#18181B] font-medium">Yaratish</span>
-              <span className="hover:text-[#18181B] transition-colors cursor-pointer">Mening videolarim</span>
-              <span className="hover:text-[#18181B] transition-colors cursor-pointer">Ilhom</span>
+              <button
+                onClick={() => setView("create")}
+                className={view === "create" ? "text-[#18181B] font-medium" : "hover:text-[#18181B] transition-colors cursor-pointer"}
+              >
+                Yaratish
+              </button>
+              <button
+                onClick={() => setView("library")}
+                className={view === "library" ? "text-[#18181B] font-medium" : "hover:text-[#18181B] transition-colors cursor-pointer"}
+              >
+                Mening videolarim
+              </button>
+              <button
+                onClick={() => setView("inspire")}
+                className={view === "inspire" ? "text-[#18181B] font-medium" : "hover:text-[#18181B] transition-colors cursor-pointer"}
+              >
+                Ilhom
+              </button>
             </nav>
           </div>
           <div className="flex items-center gap-3">
@@ -271,173 +306,176 @@ export default function App() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-14 relative">
-        <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-10 items-start">
-          <div>
-            <h1
-              className="text-[34px] sm:text-[44px] leading-[1.1] tracking-tight mb-4"
-              style={{
-                fontFamily: "Georgia, 'Times New Roman', serif",
-                background: "linear-gradient(135deg, #18181B, #7C3AED 60%, #2563EB)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
-              Tasavvuringizni videoga aylantiring
-            </h1>
-            <p className="text-[15px] text-[#71717A] mb-8 max-w-md">
-              Birgina g'oyadan professional, kinematik AI video yarating.
-            </p>
 
-            <div
-              className="rounded-2xl overflow-hidden bg-white"
-              style={{
-                border: "1px solid #E4E4E7",
-                boxShadow: "0 4px 30px rgba(139,92,246,.08)",
-              }}
-            >
-              <div className="px-6 pt-6 pb-2">
-                <label className="flex items-center gap-2 text-[12px] font-medium tracking-[0.08em] uppercase mb-3" style={{ color: "#7C3AED" }}>
-                  <Sparkles size={13} strokeWidth={2.5} />
-                  Sahnani tasvirlang
-                </label>
-                <textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Masalan: quyosh botayotganda cho'lda yurayotgan tuya, kinematik yorug'lik, sekin harakat, oltin rang..."
-                  rows={5}
-                  className="w-full bg-transparent text-[15px] leading-relaxed outline-none resize-none min-h-[110px] text-[#18181B]"
-                />
+        {view === "create" && (
+          <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-10 items-start">
+            <div>
+              <h1
+                className="text-[34px] sm:text-[44px] leading-[1.1] tracking-tight mb-4"
+                style={{
+                  fontFamily: "Georgia, 'Times New Roman', serif",
+                  background: "linear-gradient(135deg, #18181B, #7C3AED 60%, #2563EB)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                Tasavvuringizni videoga aylantiring
+              </h1>
+              <p className="text-[15px] text-[#71717A] mb-8 max-w-md">
+                Birgina g'oyadan professional, kinematik AI video yarating.
+              </p>
+
+              <div
+                className="rounded-2xl overflow-hidden bg-white"
+                style={{
+                  border: "1px solid #E4E4E7",
+                  boxShadow: "0 4px 30px rgba(139,92,246,.08)",
+                }}
+              >
+                <div className="px-6 pt-6 pb-2">
+                  <label className="flex items-center gap-2 text-[12px] font-medium tracking-[0.08em] uppercase mb-3" style={{ color: "#7C3AED" }}>
+                    <Sparkles size={13} strokeWidth={2.5} />
+                    Sahnani tasvirlang
+                  </label>
+                  <textarea
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder="Masalan: quyosh botayotganda cho'lda yurayotgan tuya, kinematik yorug'lik, sekin harakat, oltin rang..."
+                    rows={5}
+                    className="w-full bg-transparent text-[15px] leading-relaxed outline-none resize-none min-h-[110px] text-[#18181B]"
+                  />
+                </div>
+
+                <div className="border-t border-[#E4E4E7] px-6 py-5 grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="flex items-center gap-1.5 text-[11px] text-[#71717A] mb-2 tracking-wide">
+                      <Wand2 size={12} /> STIL
+                    </label>
+                    <select
+                      value={style}
+                      onChange={(e) => setStyle(e.target.value)}
+                      className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-2.5 text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]"
+                    >
+                      {STYLES.map((s) => (
+                        <option key={s.id} value={s.id}>{s.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-1.5 text-[11px] text-[#71717A] mb-2 tracking-wide">
+                      <Clock size={12} /> VAQT
+                    </label>
+                    <select
+                      value={duration}
+                      onChange={(e) => setDuration(e.target.value)}
+                      className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-2.5 text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]"
+                    >
+                      {DURATIONS.map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-1.5 text-[11px] text-[#71717A] mb-2 tracking-wide">
+                      <Ratio size={12} /> NISBAT
+                    </label>
+                    <select
+                      value={ratio}
+                      onChange={(e) => setRatio(e.target.value)}
+                      className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-2.5 text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]"
+                    >
+                      {RATIOS.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              <div className="border-t border-[#E4E4E7] px-6 py-5 grid grid-cols-3 gap-3">
-                <div>
-                  <label className="flex items-center gap-1.5 text-[11px] text-[#71717A] mb-2 tracking-wide">
-                    <Wand2 size={12} /> STIL
-                  </label>
-                  <select
-                    value={style}
-                    onChange={(e) => setStyle(e.target.value)}
-                    className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-2.5 text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]"
+              {credits === 0 && (
+                <div className="mt-4 px-4 py-3 rounded-xl bg-[#FEF3C7] border border-[#FDE68A] text-[#92400E] text-[14px] flex items-center justify-between gap-4">
+                  <span>Bepul videongiz tugadi.</span>
+                  <button
+                    onClick={() => setShowPricing(true)}
+                    className="shrink-0 text-[13px] font-medium px-3 py-1.5 rounded-lg bg-[#FDE68A] text-[#78350F] hover:bg-[#FCD34D] transition-colors"
                   >
-                    {STYLES.map((s) => (
-                      <option key={s.id} value={s.id}>{s.label}</option>
-                    ))}
-                  </select>
+                    Tariflarni ko'rish
+                  </button>
                 </div>
-                <div>
-                  <label className="flex items-center gap-1.5 text-[11px] text-[#71717A] mb-2 tracking-wide">
-                    <Clock size={12} /> VAQT
-                  </label>
-                  <select
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                    className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-2.5 text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]"
-                  >
-                    {DURATIONS.map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="flex items-center gap-1.5 text-[11px] text-[#71717A] mb-2 tracking-wide">
-                    <Ratio size={12} /> NISBAT
-                  </label>
-                  <select
-                    value={ratio}
-                    onChange={(e) => setRatio(e.target.value)}
-                    className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-2.5 text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]"
-                  >
-                    {RATIOS.map((r) => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {credits === 0 && (
-              <div className="mt-4 px-4 py-3 rounded-xl bg-[#FEF3C7] border border-[#FDE68A] text-[#92400E] text-[14px] flex items-center justify-between gap-4">
-                <span>Bepul videongiz tugadi.</span>
-                <button
-                  onClick={() => setShowPricing(true)}
-                  className="shrink-0 text-[13px] font-medium px-3 py-1.5 rounded-lg bg-[#FDE68A] text-[#78350F] hover:bg-[#FCD34D] transition-colors"
-                >
-                  Tariflarni ko'rish
-                </button>
-              </div>
-            )}
-
-            <button
-              onClick={handleGenerate}
-              disabled={!canGenerate}
-              className="w-full mt-4 flex items-center justify-center gap-2.5 py-4 rounded-xl text-[16px] font-semibold transition-all active:scale-[0.99]"
-              style={
-                canGenerate
-                  ? {
-                      background: "linear-gradient(135deg, #8B5CF6, #3B82F6)",
-                      color: "#FFFFFF",
-                      boxShadow: "0 8px 30px rgba(139,92,246,.25)",
-                      border: "none",
-                      cursor: "pointer",
-                    }
-                  : { background: "#F0F0F3", color: "#A1A1AA", border: "1px solid #E4E4E7", cursor: "not-allowed" }
-              }
-            >
-              {status === "generating" ? (
-                <React.Fragment>
-                  <Loader2 size={19} className="animate-spin" />
-                  Video yaratilmoqda
-                </React.Fragment>
-              ) : (
-                <React.Fragment>
-                  <Zap size={19} />
-                  Video yaratish
-                </React.Fragment>
               )}
-            </button>
 
-            {status === "error" && (
-              <div className="mt-4 px-4 py-3 rounded-xl bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-[14px]">
-                {errorMsg}
-              </div>
-            )}
-          </div>
+              <button
+                onClick={handleGenerate}
+                disabled={!canGenerate}
+                className="w-full mt-4 flex items-center justify-center gap-2.5 py-4 rounded-xl text-[16px] font-semibold transition-all active:scale-[0.99]"
+                style={
+                  canGenerate
+                    ? {
+                        background: "linear-gradient(135deg, #8B5CF6, #3B82F6)",
+                        color: "#FFFFFF",
+                        boxShadow: "0 8px 30px rgba(139,92,246,.25)",
+                        border: "none",
+                        cursor: "pointer",
+                      }
+                    : { background: "#F0F0F3", color: "#A1A1AA", border: "1px solid #E4E4E7", cursor: "not-allowed" }
+                }
+              >
+                {status === "generating" ? (
+                  <React.Fragment>
+                    <Loader2 size={19} className="animate-spin" />
+                    Video yaratilmoqda
+                  </React.Fragment>
+                ) : (
+                  <React.Fragment>
+                    <Zap size={19} />
+                    Video yaratish
+                  </React.Fragment>
+                )}
+              </button>
 
-          <div className="lg:sticky lg:top-8">
-            <div
-              className="rounded-2xl overflow-hidden aspect-[9/13] flex items-center justify-center relative"
-              style={{
-                border: "1px solid #E4E4E7",
-                background: "linear-gradient(160deg, rgba(139,92,246,.10), rgba(59,130,246,.08) 50%, rgba(236,72,153,.08))",
-              }}
-            >
-              {status === "generating" ? (
-                <div className="text-center px-6">
-                  <div className="flex gap-1.5 justify-center mb-4">
-                    <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" style={{ animation: "pulse-dot 1.2s ease-in-out infinite" }} />
-                    <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" style={{ animation: "pulse-dot 1.2s ease-in-out infinite 0.2s" }} />
-                    <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" style={{ animation: "pulse-dot 1.2s ease-in-out infinite 0.4s" }} />
-                  </div>
-                  <p className="text-[14px] text-[#71717A]">{styleLabel} uslubida video yaratilmoqda</p>
-                  <p className="text-[12px] text-[#A1A1AA] mt-2">Bu odatda 1-3 daqiqa vaqt oladi</p>
-                </div>
-              ) : latestVideo ? (
-                <video src={latestVideo.url} controls className="w-full h-full object-cover" />
-              ) : (
-                <div className="text-center px-6">
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-white" style={{ border: "1px solid #E4E4E7" }}>
-                    <Film size={22} className="text-[#7C3AED]" />
-                  </div>
-                  <p className="text-[14px] text-[#18181B] font-medium mb-1">Video shu yerda ko'rinadi</p>
-                  <p className="text-[12px] text-[#A1A1AA]">Chapdagi maydonga tasvir yozib boshlang</p>
+              {status === "error" && (
+                <div className="mt-4 px-4 py-3 rounded-xl bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-[14px]">
+                  {errorMsg}
                 </div>
               )}
             </div>
-          </div>
-        </div>
 
-        {gallery.length > 1 && (
+            <div className="lg:sticky lg:top-8">
+              <div
+                className="rounded-2xl overflow-hidden aspect-[9/13] flex items-center justify-center relative"
+                style={{
+                  border: "1px solid #E4E4E7",
+                  background: "linear-gradient(160deg, rgba(139,92,246,.10), rgba(59,130,246,.08) 50%, rgba(236,72,153,.08))",
+                }}
+              >
+                {status === "generating" ? (
+                  <div className="text-center px-6">
+                    <div className="flex gap-1.5 justify-center mb-4">
+                      <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" style={{ animation: "pulse-dot 1.2s ease-in-out infinite" }} />
+                      <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" style={{ animation: "pulse-dot 1.2s ease-in-out infinite 0.2s" }} />
+                      <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" style={{ animation: "pulse-dot 1.2s ease-in-out infinite 0.4s" }} />
+                    </div>
+                    <p className="text-[14px] text-[#71717A]">{styleLabel} uslubida video yaratilmoqda</p>
+                    <p className="text-[12px] text-[#A1A1AA] mt-2">Bu odatda 1-3 daqiqa vaqt oladi</p>
+                  </div>
+                ) : latestVideo ? (
+                  <video src={latestVideo.url} controls className="w-full h-full object-cover" />
+                ) : (
+                  <div className="text-center px-6">
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-white" style={{ border: "1px solid #E4E4E7" }}>
+                      <Film size={22} className="text-[#7C3AED]" />
+                    </div>
+                    <p className="text-[14px] text-[#18181B] font-medium mb-1">Video shu yerda ko'rinadi</p>
+                    <p className="text-[12px] text-[#A1A1AA]">Chapdagi maydonga tasvir yozib boshlang</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {view === "create" && gallery.length > 1 && (
           <div className="mt-16">
             <div className="flex items-center gap-3 mb-5">
               <h2 className="text-[13px] font-medium text-[#71717A] tracking-[0.06em] uppercase">Oldingi videolar</h2>
@@ -458,8 +496,7 @@ export default function App() {
                       {STYLES.find((s) => s.id === item.style)?.label} · {item.duration} · {item.ratio}
                     </p>
                     <div className="flex items-center gap-2">
-                      
-                        <a
+                      <a
                         href={item.url}
                         download
                         className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors"
@@ -481,8 +518,65 @@ export default function App() {
           </div>
         )}
 
-        {gallery.length === 0 && status === "idle" && (
-          <div className="mt-20">
+        {view === "library" && (
+          <div>
+            <h2 className="text-[24px] mb-6 tracking-tight" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+              Mening videolarim
+            </h2>
+            {gallery.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-white" style={{ border: "1px solid #E4E4E7" }}>
+                  <Film size={22} className="text-[#7C3AED]" />
+                </div>
+                <p className="text-[14px] text-[#71717A] mb-1">Hali video yaratmagansiz</p>
+                <button
+                  onClick={() => setView("create")}
+                  className="mt-4 inline-flex items-center gap-2 text-[13px] font-medium text-white rounded-lg px-4 py-2"
+                  style={{ background: "linear-gradient(135deg, #8B5CF6, #3B82F6)" }}
+                >
+                  <Zap size={14} /> Video yaratish
+                </button>
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-4">
+                {gallery.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-xl overflow-hidden bg-white"
+                    style={{ border: "1px solid #E4E4E7" }}
+                  >
+                    <video src={item.url} controls className="w-full block bg-black" style={{ maxHeight: 320 }} />
+                    <div className="px-4 py-3.5">
+                      <p className="text-[13px] text-[#71717A] truncate mb-1">{item.prompt}</p>
+                      <p className="text-[11px] text-[#A1A1AA] mb-3">
+                        {STYLES.find((s) => s.id === item.style)?.label} · {item.duration} · {item.ratio}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={item.url}
+                          download
+                          className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors"
+                        >
+                          <Download size={13} /> Yuklab olish
+                        </a>
+                        <button
+                          onClick={() => handleRegenerate(item)}
+                          disabled={status === "generating" || credits <= 0}
+                          className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <RefreshCw size={13} /> Qayta yaratish
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {view === "inspire" && (
+          <div>
             <div className="text-center mb-8">
               <h2 className="text-[13px] font-medium tracking-[0.08em] uppercase mb-2" style={{ color: "#7C3AED" }}>
                 ✦ Ilhom oling
