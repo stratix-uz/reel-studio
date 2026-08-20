@@ -18,10 +18,8 @@ const RATIOS = ["16:9", "9:16", "1:1"];
 const BACKEND_BASE = "https://reel-studio-production-b994.up.railway.app";
 
 const INSPIRATION = [
-  { label: "Kinematik", tag: "Sahro g'oliblari" },
-  { label: "Mahsulot", tag: "Zamonaviy soat" },
-  { label: "Anime", tag: "Tungi shahar" },
-  { label: "Fashion", tag: "Podium yurishi" },
+  { label: "Kinematik", tag: "Sahro g'oliblari", video: "/inspiration/sahro-goliblari.mp4" },
+  { label: "Mahsulot", tag: "Zamonaviy soat", video: "/inspiration/zamonaviy-soat.mp4" },
 ];
 
 function BackgroundGlow() {
@@ -40,6 +38,57 @@ function Sprocket() {
       {Array.from({ length: 14 }).map((_, i) => (
         <div key={i} className="w-1.5 h-1.5 rounded-[2px] bg-[#E4E4E7]" />
       ))}
+    </div>
+  );
+}
+
+function InspirationCard({ item }) {
+  const videoRef = useRef(null);
+
+  function handleEnter() {
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    }
+  }
+
+  function handleLeave() {
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  }
+
+  return (
+    <div
+      className="rounded-xl overflow-hidden aspect-[3/4] relative group cursor-pointer bg-black"
+      style={{ border: "1px solid #E4E4E7" }}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+    >
+      <video
+        ref={videoRef}
+        src={item.video}
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      <div
+        className="absolute inset-0 flex items-end p-3 transition-opacity"
+        style={{ background: "linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.55) 100%)" }}
+      >
+        <div className="relative z-10">
+          <p className="text-[13px] font-medium text-white">{item.tag}</p>
+          <p className="text-[11px] text-white/70">{item.label}</p>
+        </div>
+      </div>
+      <div
+        className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center bg-white/90 opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <Play size={12} className="text-[#18181B] ml-0.5" fill="#18181B" />
+      </div>
     </div>
   );
 }
@@ -585,19 +634,7 @@ export default function App() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {INSPIRATION.map((item, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl overflow-hidden aspect-[3/4] flex items-end p-3 relative group cursor-pointer"
-                  style={{
-                    border: "1px solid #E4E4E7",
-                    background: `linear-gradient(160deg, rgba(139,92,246,.12), rgba(59,130,246,.08) 50%, rgba(236,72,153,.10))`,
-                  }}
-                >
-                  <div className="relative z-10">
-                    <p className="text-[13px] font-medium text-[#18181B]">{item.tag}</p>
-                    <p className="text-[11px] text-[#71717A]">{item.label}</p>
-                  </div>
-                </div>
+                <InspirationCard key={i} item={item} />
               ))}
             </div>
           </div>
