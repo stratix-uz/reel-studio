@@ -23,6 +23,7 @@ const MODEL_VERSION = "kwaivgi/kling-v1.6-standard";
 const CLICK_SERVICE_ID = process.env.CLICK_SERVICE_ID;
 const CLICK_MERCHANT_ID = process.env.CLICK_MERCHANT_ID;
 const CLICK_SECRET_KEY = process.env.CLICK_SECRET_KEY;
+const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY;
 
 // Tariflar: reja nomi -> narx (so'mda) va beriladigan kredit soni
 const PLANS = {
@@ -212,9 +213,24 @@ app.post("/api/click/complete", async (req, res) => {
   try {
     const userRef = db.collection("users").doc(order.uid);
     await userRef.set(
-      { credits: FieldValue.increment(order.credits) },
+      {
+        credits: FieldValue.increment(order.credits),
+        plan: order.planId,
+        lastPurchaseAt: new Date().toISOString(),
+      },
       { merge: true }
     );
+
+    // Sotuvlar tarixiga yozamiz (admin panel uchun)
+    await db.collection("purchases").add({
+      uid: order.uid,
+      planId: order.planId,
+      credits: order.credits,
+      amount: order.amount,
+      orderId: merchant_trans_id,
+      createdAt: new Date().toISOString(),
+    });
+
     console.log(`To'lov muvaffaqiyatli: uid=${order.uid}, +${order.credits} kredit qo'shildi`);
   } catch (err) {
     console.error("Firestore yozishda xatolik:", err);
@@ -227,6 +243,40 @@ app.post("/api/click/complete", async (req, res) => {
     error: 0,
     error_note: "Success",
   });
+});
+
+// ============ ADMIN: STATISTIKA VA FOYDALANUVCHILAR ============
+app.get("/api/admin/data", async (req, res) => {
+  const key = req.headers["x-admin-key"];
+  if (!ADMIN_SECRET_KEY || key !== ADMIN_SECRET_KEY) {
+    return res.status(401).json({ error: "Ruxsat yo'q" });
+  }
+
+  try {
+    const usersSnap = await db.collection("users").get();
+    const users = usersSnap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+
+    const purchasesSnap = await db.collection("purchases").orderBy("createdAt", "desc").get();
+    const purchases = purchasesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+    const totalUsers = users.length;
+    const totalRevenue = purchases.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const totalPurchases = purchases.length;
+
+    const planCounts = {};
+    purchases.forEach((p) => {
+      planCounts[p.planId] = (planCounts[p.planId] || 0) + 1;
+    });
+
+    res.json({
+      stats: { totalUsers, totalRevenue, totalPurchases, planCounts },
+      users,
+      purchases,
+    });
+  } catch (err) {
+    console.error("Admin data xatosi:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 const PORT = process.env.PORT || 3001;
