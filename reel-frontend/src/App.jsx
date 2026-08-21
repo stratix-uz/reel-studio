@@ -8,10 +8,25 @@ import { LANGUAGES, translations } from "./translations";
 
 const STYLE_IDS = ["cinematic", "anime", "realistic", "3d"];
 const DURATIONS = ["5s", "10s"];
-const RATIOS = ["16:9", "9:16", "1:1"];
+const VIDEO_RATIOS = ["16:9", "9:16", "1:1"];
+const IMAGE_RATIOS = ["16:9", "9:16", "1:1", "4:5", "21:9"];
 
 const BACKEND_BASE = "https://reel-studio-production-b994.up.railway.app";
 const APK_URL = "/downloads/reelstudio.apk";
+
+const TEMPLATE_IDS = [
+  "templateAd",
+  "templateProduct",
+  "templateReel",
+  "templateLuxury",
+  "templateCar",
+  "templateFashion",
+  "templateTravel",
+  "templateFood",
+  "templateRealEstate",
+  "templateAnime",
+  "template3d",
+];
 
 function BackgroundGlow() {
   return (
@@ -186,6 +201,12 @@ export default function App() {
     ),
   }));
 
+  const TEMPLATES = TEMPLATE_IDS.map((id) => ({
+    id,
+    label: t(id),
+    prompt: t(`${id}Prompt`),
+  }));
+
   const INSPIRATION = [
     { labelKey: "tagKinematik", tagKey: "inspirationSahro", video: "/inspiration/sahro-goliblari.mp4" },
     { labelKey: "tagMahsulot", tagKey: "inspirationSoat", video: "/inspiration/zamonaviy-soat.mp4" },
@@ -208,6 +229,16 @@ export default function App() {
   const [view, setView] = useState("create");
   const [menuOpen, setMenuOpen] = useState(false);
   const abortRef = useRef(null);
+
+  const RATIOS = mediaType === "video" ? VIDEO_RATIOS : IMAGE_RATIOS;
+
+  useEffect(() => {
+    const list = mediaType === "video" ? VIDEO_RATIOS : IMAGE_RATIOS;
+    if (!list.includes(ratio)) {
+      setRatio(list[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mediaType]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -391,6 +422,10 @@ export default function App() {
     setMenuOpen(false);
   }
 
+  function applyTemplate(tpl) {
+    setPrompt(tpl.prompt);
+  }
+
   const styleLabel = STYLES.find((s) => s.id === style)?.label ?? style;
   const latestItem = gallery[0] || null;
 
@@ -413,6 +448,8 @@ export default function App() {
         @keyframes pulse-dot { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
         ::selection { background: #8B5CF6; color: #FFFFFF; }
         ::placeholder { color: #A1A1AA; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
       <BackgroundGlow />
@@ -521,6 +558,23 @@ export default function App() {
                 </button>
               </div>
 
+              <div className="mb-5">
+                <label className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium tracking-[0.08em] uppercase mb-2.5 text-[#71717A]">
+                  <Sparkles size={11} /> {t("templatesTitle")}
+                </label>
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
+                  {TEMPLATES.map((tpl) => (
+                    <button
+                      key={tpl.id}
+                      onClick={() => applyTemplate(tpl)}
+                      className="shrink-0 text-[12px] font-medium text-[#71717A] bg-white border border-[#E4E4E7] rounded-full px-3.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors whitespace-nowrap"
+                    >
+                      {tpl.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="rounded-2xl overflow-hidden bg-white" style={{ border: "1px solid #E4E4E7", boxShadow: "0 4px 30px rgba(139,92,246,.08)" }}>
                 <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-2">
                   <label className="flex items-center gap-2 text-[11px] sm:text-[12px] font-medium tracking-[0.08em] uppercase mb-3" style={{ color: "#7C3AED" }}>
@@ -588,6 +642,11 @@ export default function App() {
                   </React.Fragment>
                 )}
               </button>
+
+              <div className="flex items-center justify-between mt-2.5 px-1">
+                <span className="text-[11px] text-[#A1A1AA]">{t("creditsApprox")}</span>
+                <span className="text-[11px] text-[#A1A1AA]">{t("remainingBalance")}: {credits ?? 0}</span>
+              </div>
 
               {status === "error" && (
                 <div className="mt-4 px-4 py-3 rounded-xl bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-[13px] sm:text-[14px]">
