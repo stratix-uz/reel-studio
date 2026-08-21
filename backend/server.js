@@ -14,8 +14,8 @@ const db = getFirestore();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "15mb" }));
+app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const VIDEO_MODEL_VERSION = "kwaivgi/kling-v1.6-standard";
@@ -114,7 +114,7 @@ const orders = {};
 
 // ============ VIDEO GENERATSIYA: BOSHLASH ============
 app.post("/api/generate-video/start", async (req, res) => {
-  const { prompt, style, duration, ratio, advanced } = req.body;
+  const { prompt, style, duration, ratio, advanced, startImage } = req.body;
 
   if (!prompt || prompt.trim().length < 3) {
     return res.status(400).json({ error: "Prompt juda qisqa" });
@@ -137,6 +137,11 @@ app.post("/api/generate-video/start", async (req, res) => {
   }
   if (advanced && typeof advanced.cfgScale === "number" && advanced.cfgScale >= 0 && advanced.cfgScale <= 1) {
     input.cfg_scale = advanced.cfgScale;
+  }
+
+  // Rasm -> video: agar foydalanuvchi boshlang'ich rasm yuklagan bo'lsa
+  if (startImage && typeof startImage === "string" && startImage.startsWith("data:image")) {
+    input.start_image = startImage;
   }
 
   try {
