@@ -25,6 +25,11 @@ const CLICK_MERCHANT_ID = process.env.CLICK_MERCHANT_ID;
 const CLICK_SECRET_KEY = process.env.CLICK_SECRET_KEY;
 const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY;
 
+// Hamkorlik / referal dasturi sozlamalari
+const PARTNER_SECRET_KEY = process.env.PARTNER_SECRET_KEY;
+const PARTNER_REFERRAL_ID = "1118725021";
+const PARTNER_DISCOUNT_PERCENT = 1; // faqat pro va max uchun
+
 // Tariflar: reja nomi -> narx (so'mda) va beriladigan kredit soni
 const PLANS = {
   basic: { priceUsd: 29.9, credits: 10 },
@@ -32,6 +37,9 @@ const PLANS = {
   pro: { priceUsd: 99.9, credits: 45 },
   max: { priceUsd: 199.9, credits: 100 },
 };
+
+// Chegirma faqat shu rejalar uchun amal qiladi
+const DISCOUNTABLE_PLANS = ["pro", "max"];
 
 // Vaqtinchalik xotirada saqlanadigan buyurtmalar
 const orders = {};
@@ -102,7 +110,7 @@ app.get("/api/generate-video/status/:id", async (req, res) => {
 });
 
 // ============ CLICK: TO'LOV BOSHLASH ============
-app.post("/api/click/create-order", (req, res) => {
+app.post("/api/click/create-order", async (req, res) => {
   const { planId, uid } = req.body;
 
   const plan = PLANS[planId];
@@ -116,7 +124,24 @@ app.post("/api/click/create-order", (req, res) => {
   const orderId = "order_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
 
   const usdToUzs = 12700;
-  const amountUzs = Math.round(plan.priceUsd * usdToUzs);
+  let amountUzs = Math.round(plan.priceUsd * usdToUzs);
+
+  // Referal orqali kelgan foydalanuvchilar uchun chegirma (faqat pro/max)
+  let discountApplied = false;
+  try {
+    if (DISCOUNTABLE_PLANS.includes(planId)) {
+      const userSnap = await db.collection("users").doc(uid).get();
+      if (userSnap.exists) {
+        const userData = userSnap.data();
+        if (userData.referredBy === PARTNER_REFERRAL_ID) {
+          amountUzs = Math.round(amountUzs * (1 - PARTNER_DISCOUNT_PERCENT / 100));
+          discountApplied = true;
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Chegirmani tekshirishda xatolik:", err);
+  }
 
   orders[orderId] = {
     uid,
@@ -124,6 +149,7 @@ app.post("/api/click/create-order", (req, res) => {
     credits: plan.credits,
     amount: amountUzs,
     status: "pending",
+    discountApplied,
   };
 
   const returnUrl = process.env.FRONTEND_URL || "http://localhost:5177";
@@ -228,6 +254,7 @@ app.post("/api/click/complete", async (req, res) => {
       credits: order.credits,
       amount: order.amount,
       orderId: merchant_trans_id,
+      discountApplied: order.discountApplied || false,
       createdAt: new Date().toISOString(),
     });
 
@@ -275,6 +302,42 @@ app.get("/api/admin/data", async (req, res) => {
     });
   } catch (err) {
     console.error("Admin data xatosi:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============ HAMKOR: FAQAT O'ZI ORQALI KELGAN FOYDALANUVCHILAR ============
+app.get("/api/partner/data", async (req, res) => {
+  const key = req.headers["x-partner-key"];
+  if (!PARTNER_SECRET_KEY || key !== PARTNER_SECRET_KEY) {
+    return res.status(401).json({ error: "Ruxsat yo'q" });
+  }
+
+  try {
+    const usersSnap = await db
+      .collection("users")
+      .where("referredBy", "==", PARTNER_REFERRAL_ID)
+      .get();
+    const users = usersSnap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+
+    const uidSet = new Set(users.map((u) => u.uid));
+
+    const purchasesSnap = await db.collection("purchases").orderBy("createdAt", "desc").get();
+    const purchases = purchasesSnap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((p) => uidSet.has(p.uid));
+
+    const totalUsers = users.length;
+    const totalPurchases = purchases.length;
+    const totalRevenue = purchases.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+    res.json({
+      stats: { totalUsers, totalPurchases, totalRevenue },
+      users,
+      purchases,
+    });
+  } catch (err) {
+    console.error("Partner data xatosi:", err);
     res.status(500).json({ error: err.message });
   }
 });
