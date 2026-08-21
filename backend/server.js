@@ -19,7 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const VIDEO_MODEL_VERSION = "kwaivgi/kling-v1.6-standard";
-const IMAGE_MODEL_VERSION = "black-forest-labs/flux-schnell";
+const IMAGE_MODEL_VERSION = "black-forest-labs/flux-dev";
 
 const CLICK_SERVICE_ID = process.env.CLICK_SERVICE_ID;
 const CLICK_MERCHANT_ID = process.env.CLICK_MERCHANT_ID;
