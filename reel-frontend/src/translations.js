@@ -101,6 +101,16 @@ export const translations = {
     // Android app
     downloadApp: "Android uchun yuklab olish",
     downloadAppShort: "Ilova",
+
+    // Image generation
+    modeVideo: "Video",
+    modeImage: "Rasm",
+    generateImage: "Rasm yaratish",
+    generatingImageText: "Rasm yaratilmoqda",
+    imageAppearsHere: "Rasm shu yerda ko'rinadi",
+    startTypingImage: "Chapdagi maydonga tasvir yozib boshlang",
+    imageNotStarted: "Rasm jarayoni boshlanmadi.",
+    imageGenerationFailed: "Rasm yaratish muvaffaqiyatsiz tugadi",
   },
 
   ru: {
@@ -187,6 +197,16 @@ export const translations = {
     // Android app
     downloadApp: "Скачать для Android",
     downloadAppShort: "Приложение",
+
+    // Image generation
+    modeVideo: "Видео",
+    modeImage: "Изображение",
+    generateImage: "Создать изображение",
+    generatingImageText: "Изображение создаётся",
+    imageAppearsHere: "Изображение появится здесь",
+    startTypingImage: "Начните с описания в поле слева",
+    imageNotStarted: "Процесс создания изображения не запущен.",
+    imageGenerationFailed: "Не удалось создать изображение",
   },
 
   en: {
@@ -273,5 +293,15 @@ export const translations = {
     // Android app
     downloadApp: "Download for Android",
     downloadAppShort: "App",
+
+    // Image generation
+    modeVideo: "Video",
+    modeImage: "Image",
+    generateImage: "Generate image",
+    generatingImageText: "Generating image",
+    imageAppearsHere: "Your image will appear here",
+    startTypingImage: "Start by describing a scene on the left",
+    imageNotStarted: "Image generation did not start.",
+    imageGenerationFailed: "Image generation failed",
   },
 };

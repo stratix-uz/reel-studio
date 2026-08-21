@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X, Smartphone } from "lucide-react";
+import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X, Smartphone, Video, Image as ImageIcon } from "lucide-react";
 import { auth, googleProvider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, addDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
@@ -197,6 +197,7 @@ export default function App() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [credits, setCredits] = useState(null);
 
+  const [mediaType, setMediaType] = useState("video"); // "video" | "image"
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("cinematic");
   const [duration, setDuration] = useState("5s");
@@ -241,7 +242,7 @@ export default function App() {
           const loaded = videosSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
           setGallery(loaded);
         } catch (err) {
-          console.error("Videolarni yuklashda xatolik:", err);
+          console.error("Kontentni yuklashda xatolik:", err);
         }
       }
     });
@@ -282,58 +283,108 @@ export default function App() {
       if (!startData.predictionId) throw new Error(t("videoNotStarted"));
 
       const predictionId = startData.predictionId;
-      let videoUrl = null;
+      let mediaUrl = null;
 
-      while (!videoUrl) {
+      while (!mediaUrl) {
         await new Promise((r) => setTimeout(r, 4000));
         const pollRes = await fetch(`${BACKEND_BASE}/api/generate-video/status/${predictionId}`);
         if (!pollRes.ok) throw new Error(`${t("statusCheckError")}: ${pollRes.status}`);
         const pollData = await pollRes.json();
 
         if (pollData.status === "succeeded") {
-          videoUrl = pollData.videoUrl;
+          mediaUrl = pollData.videoUrl;
         } else if (pollData.status === "failed") {
           throw new Error(pollData.error || t("videoGenerationFailed"));
         }
       }
 
-      const userRef = doc(db, "users", user.uid);
-      const newCredits = Math.max(0, (credits ?? 1) - 1);
-      await setDoc(userRef, { credits: newCredits }, { merge: true });
-      setCredits(newCredits);
-
-      const videoDoc = {
-        url: videoUrl,
-        prompt,
-        style,
-        duration,
-        ratio,
-        createdAt: new Date().toISOString(),
-      };
-      const docRef = await addDoc(collection(db, "users", user.uid, "videos"), videoDoc);
-      setGallery((g) => [{ id: docRef.id, ...videoDoc }, ...g]);
-
-      setStatus("done");
+      await finalizeGeneration(mediaUrl, "video");
     } catch (err) {
       setErrorMsg(err.message.includes("Failed to fetch") ? t("backendConnectionError") : err.message);
       setStatus("error");
     }
   }
 
+  async function generateImage() {
+    setStatus("generating");
+    setErrorMsg("");
+    try {
+      const startRes = await fetch(`${BACKEND_BASE}/api/generate-image/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, style, ratio, uid: user.uid }),
+      });
+      if (!startRes.ok) throw new Error(`${t("serverError")}: ${startRes.status}`);
+      const startData = await startRes.json();
+      if (!startData.predictionId) throw new Error(t("imageNotStarted"));
+
+      const predictionId = startData.predictionId;
+      let mediaUrl = null;
+
+      while (!mediaUrl) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const pollRes = await fetch(`${BACKEND_BASE}/api/generate-image/status/${predictionId}`);
+        if (!pollRes.ok) throw new Error(`${t("statusCheckError")}: ${pollRes.status}`);
+        const pollData = await pollRes.json();
+
+        if (pollData.status === "succeeded") {
+          mediaUrl = pollData.imageUrl;
+        } else if (pollData.status === "failed") {
+          throw new Error(pollData.error || t("imageGenerationFailed"));
+        }
+      }
+
+      await finalizeGeneration(mediaUrl, "image");
+    } catch (err) {
+      setErrorMsg(err.message.includes("Failed to fetch") ? t("backendConnectionError") : err.message);
+      setStatus("error");
+    }
+  }
+
+  async function finalizeGeneration(url, type) {
+    const userRef = doc(db, "users", user.uid);
+    const newCredits = Math.max(0, (credits ?? 1) - 1);
+    await setDoc(userRef, { credits: newCredits }, { merge: true });
+    setCredits(newCredits);
+
+    const contentDoc = {
+      url,
+      type,
+      prompt,
+      style,
+      duration: type === "video" ? duration : null,
+      ratio,
+      createdAt: new Date().toISOString(),
+    };
+    const docRef = await addDoc(collection(db, "users", user.uid, "videos"), contentDoc);
+    setGallery((g) => [{ id: docRef.id, ...contentDoc }, ...g]);
+
+    setStatus("done");
+  }
+
   async function handleGenerate() {
     if (!canGenerate) return;
-    await generateVideo();
+    if (mediaType === "video") {
+      await generateVideo();
+    } else {
+      await generateImage();
+    }
   }
 
   async function handleRegenerate(item) {
     if (status === "generating" || credits <= 0) return;
     setPrompt(item.prompt);
     setStyle(item.style);
-    setDuration(item.duration);
+    if (item.duration) setDuration(item.duration);
     setRatio(item.ratio);
+    setMediaType(item.type === "image" ? "image" : "video");
     setView("create");
     setMenuOpen(false);
-    await generateVideo();
+    if (item.type === "image") {
+      await generateImage();
+    } else {
+      await generateVideo();
+    }
   }
 
   function goTo(v) {
@@ -342,7 +393,7 @@ export default function App() {
   }
 
   const styleLabel = STYLES.find((s) => s.id === style)?.label ?? style;
-  const latestVideo = gallery[0] || null;
+  const latestItem = gallery[0] || null;
 
   if (authLoading) {
     return (
@@ -515,7 +566,33 @@ export default function App() {
               >
                 {t("heroTitle1")} <span>{t("heroTitle2")}</span> {t("heroTitle3")}
               </h1>
-              <p className="text-[14px] sm:text-[15px] text-[#71717A] mb-6 sm:mb-8 max-w-md">{t("heroSubtitle")}</p>
+              <p className="text-[14px] sm:text-[15px] text-[#71717A] mb-5 max-w-md">{t("heroSubtitle")}</p>
+
+              {/* VIDEO / RASM REJIM TANLASH */}
+              <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-[#F0F0F3] mb-5">
+                <button
+                  onClick={() => setMediaType("video")}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium transition-all"
+                  style={
+                    mediaType === "video"
+                      ? { background: "#FFFFFF", color: "#18181B", boxShadow: "0 1px 3px rgba(0,0,0,.1)" }
+                      : { color: "#71717A" }
+                  }
+                >
+                  <Video size={14} /> {t("modeVideo")}
+                </button>
+                <button
+                  onClick={() => setMediaType("image")}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium transition-all"
+                  style={
+                    mediaType === "image"
+                      ? { background: "#FFFFFF", color: "#18181B", boxShadow: "0 1px 3px rgba(0,0,0,.1)" }
+                      : { color: "#71717A" }
+                  }
+                >
+                  <ImageIcon size={14} /> {t("modeImage")}
+                </button>
+              </div>
 
               <div
                 className="rounded-2xl overflow-hidden bg-white"
@@ -535,7 +612,7 @@ export default function App() {
                   />
                 </div>
 
-                <div className="border-t border-[#E4E4E7] px-4 sm:px-6 py-4 sm:py-5 grid grid-cols-3 gap-2 sm:gap-3">
+                <div className={`border-t border-[#E4E4E7] px-4 sm:px-6 py-4 sm:py-5 grid ${mediaType === "video" ? "grid-cols-3" : "grid-cols-2"} gap-2 sm:gap-3`}>
                   <div>
                     <label className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] text-[#71717A] mb-1.5 sm:mb-2 tracking-wide">
                       <Wand2 size={11} /> <span className="truncate">{t("style")}</span>
@@ -550,20 +627,22 @@ export default function App() {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] text-[#71717A] mb-1.5 sm:mb-2 tracking-wide">
-                      <Clock size={11} /> <span className="truncate">{t("duration")}</span>
-                    </label>
-                    <select
-                      value={duration}
-                      onChange={(e) => setDuration(e.target.value)}
-                      className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-1.5 sm:px-2.5 py-2 sm:py-2.5 text-[11px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]"
-                    >
-                      {DURATIONS.map((d) => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {mediaType === "video" && (
+                    <div>
+                      <label className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] text-[#71717A] mb-1.5 sm:mb-2 tracking-wide">
+                        <Clock size={11} /> <span className="truncate">{t("duration")}</span>
+                      </label>
+                      <select
+                        value={duration}
+                        onChange={(e) => setDuration(e.target.value)}
+                        className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-1.5 sm:px-2.5 py-2 sm:py-2.5 text-[11px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]"
+                      >
+                        {DURATIONS.map((d) => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] text-[#71717A] mb-1.5 sm:mb-2 tracking-wide">
                       <Ratio size={11} /> <span className="truncate">{t("ratio")}</span>
@@ -612,12 +691,12 @@ export default function App() {
                 {status === "generating" ? (
                   <React.Fragment>
                     <Loader2 size={19} className="animate-spin" />
-                    {t("generating")}
+                    {mediaType === "video" ? t("generating") : t("generatingImageText")}
                   </React.Fragment>
                 ) : (
                   <React.Fragment>
                     <Zap size={19} />
-                    {t("generateVideo")}
+                    {mediaType === "video" ? t("generateVideo") : t("generateImage")}
                   </React.Fragment>
                 )}
               </button>
@@ -647,14 +726,20 @@ export default function App() {
                     <p className="text-[13px] sm:text-[14px] text-[#71717A]">{styleLabel} {t("generatingStyle")}</p>
                     <p className="text-[11px] sm:text-[12px] text-[#A1A1AA] mt-2">{t("generatingTime")}</p>
                   </div>
-                ) : latestVideo ? (
-                  <video src={latestVideo.url} controls className="w-full h-full object-cover" />
+                ) : latestItem ? (
+                  latestItem.type === "image" ? (
+                    <img src={latestItem.url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <video src={latestItem.url} controls className="w-full h-full object-cover" />
+                  )
                 ) : (
                   <div className="text-center px-6">
                     <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-white" style={{ border: "1px solid #E4E4E7" }}>
                       <Film size={22} className="text-[#7C3AED]" />
                     </div>
-                    <p className="text-[13px] sm:text-[14px] text-[#18181B] font-medium mb-1">{t("videoAppearsHere")}</p>
+                    <p className="text-[13px] sm:text-[14px] text-[#18181B] font-medium mb-1">
+                      {mediaType === "video" ? t("videoAppearsHere") : t("imageAppearsHere")}
+                    </p>
                     <p className="text-[11px] sm:text-[12px] text-[#A1A1AA]">{t("startTyping")}</p>
                   </div>
                 )}
@@ -673,11 +758,16 @@ export default function App() {
             <div className="grid sm:grid-cols-2 gap-4">
               {gallery.slice(1).map((item) => (
                 <div key={item.id} className="rounded-xl overflow-hidden bg-white" style={{ border: "1px solid #E4E4E7" }}>
-                  <video src={item.url} controls className="w-full block bg-black" style={{ maxHeight: 320 }} />
+                  {item.type === "image" ? (
+                    <img src={item.url} alt="" className="w-full block bg-black" style={{ maxHeight: 320, objectFit: "cover" }} />
+                  ) : (
+                    <video src={item.url} controls className="w-full block bg-black" style={{ maxHeight: 320 }} />
+                  )}
                   <div className="px-4 py-3.5">
                     <p className="text-[13px] text-[#71717A] truncate mb-1">{item.prompt}</p>
                     <p className="text-[11px] text-[#A1A1AA] mb-3">
-                      {STYLES.find((s) => s.id === item.style)?.label} · {item.duration} · {item.ratio}
+                      {STYLES.find((s) => s.id === item.style)?.label}
+                      {item.duration ? ` · ${item.duration}` : ""} · {item.ratio}
                     </p>
                     <div className="flex items-center gap-2">
                       <a
@@ -725,11 +815,16 @@ export default function App() {
               <div className="grid sm:grid-cols-2 gap-4">
                 {gallery.map((item) => (
                   <div key={item.id} className="rounded-xl overflow-hidden bg-white" style={{ border: "1px solid #E4E4E7" }}>
-                    <video src={item.url} controls className="w-full block bg-black" style={{ maxHeight: 320 }} />
+                    {item.type === "image" ? (
+                      <img src={item.url} alt="" className="w-full block bg-black" style={{ maxHeight: 320, objectFit: "cover" }} />
+                    ) : (
+                      <video src={item.url} controls className="w-full block bg-black" style={{ maxHeight: 320 }} />
+                    )}
                     <div className="px-4 py-3.5">
                       <p className="text-[13px] text-[#71717A] truncate mb-1">{item.prompt}</p>
                       <p className="text-[11px] text-[#A1A1AA] mb-3">
-                        {STYLES.find((s) => s.id === item.style)?.label} · {item.duration} · {item.ratio}
+                        {STYLES.find((s) => s.id === item.style)?.label}
+                        {item.duration ? ` · ${item.duration}` : ""} · {item.ratio}
                       </p>
                       <div className="flex items-center gap-2">
                         <a
