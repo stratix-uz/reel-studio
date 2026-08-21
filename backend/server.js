@@ -42,12 +42,29 @@ const PLANS = {
 // Chegirma faqat shu rejalar uchun amal qiladi
 const DISCOUNTABLE_PLANS = ["pro", "max"];
 
-// Rasm o'lcham nisbati -> piksel o'lchamlari (FLUX schnell talab qiladigan format)
+// Rasm o'lcham nisbati -> piksel o'lchamlari (FLUX talab qiladigan format)
 const IMAGE_ASPECT_MAP = {
   "16:9": "16:9",
   "9:16": "9:16",
   "1:1": "1:1",
 };
+
+// Promptni avtomatik inglizchaga tarjima qilish
+// (FLUX kabi rasm modellari asosan inglizcha matnni yaxshiroq tushunadi,
+// o'zbekcha prompt yuborilganda mos kelmaydigan natijalar chiqishi mumkin)
+async function translateToEnglish(text) {
+  try {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(text)}`;
+    const res = await fetch(url);
+    if (!res.ok) return text;
+    const data = await res.json();
+    const translated = data[0].map((part) => part[0]).join("");
+    return translated || text;
+  } catch (err) {
+    console.error("Tarjima xatosi:", err);
+    return text;
+  }
+}
 
 // Vaqtinchalik xotirada saqlanadigan buyurtmalar
 const orders = {};
@@ -128,7 +145,8 @@ app.post("/api/generate-image/start", async (req, res) => {
     return res.status(500).json({ error: "REPLICATE_API_TOKEN sozlanmagan (.env faylini tekshiring)" });
   }
 
-  const fullPrompt = `${prompt}, ${style} style`;
+  const translatedPrompt = await translateToEnglish(prompt);
+  const fullPrompt = `${translatedPrompt}, ${style} style`;
   const aspectRatio = IMAGE_ASPECT_MAP[ratio] || "1:1";
 
   try {
