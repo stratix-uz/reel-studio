@@ -138,6 +138,12 @@ export const translations = {
     templateAnimePrompt: "anime uslubidagi qahramon, dinamik poza, yorqin ranglar, detallashtirilgan fon",
     template3d: "3D animatsiya",
     template3dPrompt: "3D render qahramon, yumshoq soyalar, zamonaviy render uslubi, yuqori detallashtirilgan",
+
+    // AI Prompt enhance
+    enhancePrompt: "AI bilan yaxshilash",
+    enhancing: "Yaxshilanmoqda...",
+    enhanceFailed: "Promptni yaxshilab bo'lmadi",
+    enhanceNeedsText: "Avval biror narsa yozing",
   },
 
   ru: {
@@ -261,6 +267,12 @@ export const translations = {
     templateAnimePrompt: "персонаж в стиле аниме, динамичная поза, яркие цвета, детализированный фон",
     template3d: "3D анимация",
     template3dPrompt: "3D рендер персонажа, мягкие тени, современный стиль рендера, высокая детализация",
+
+    // AI Prompt enhance
+    enhancePrompt: "Улучшить с AI",
+    enhancing: "Улучшается...",
+    enhanceFailed: "Не удалось улучшить промпт",
+    enhanceNeedsText: "Сначала что-нибудь напишите",
   },
 
   en: {
@@ -357,5 +369,38 @@ export const translations = {
     startTypingImage: "Start by describing a scene on the left",
     imageNotStarted: "Image generation did not start.",
     imageGenerationFailed: "Image generation failed",
+
+    // Templates
+    templatesTitle: "Templates",
+    creditsApprox: "≈ 1 credit",
+    remainingBalance: "Remaining balance",
+    templateAd: "Cinematic Ad",
+    templateAdPrompt: "luxury product on a table, soft studio lighting, slowly rotating camera, professional advertisement style",
+    templateProduct: "Product Commercial",
+    templateProductPrompt: "modern product on white background, bright lighting, minimalist, professional product photography",
+    templateReel: "Instagram Reel",
+    templateReelPrompt: "young woman walking on a city street, modern outfit, sunny day, natural light, vertical format",
+    templateLuxury: "Luxury Lifestyle",
+    templateLuxuryPrompt: "luxury villa with pool, evening lighting, palm trees, relaxing atmosphere",
+    templateCar: "Car Commercial",
+    templateCarPrompt: "sports car on a mountain road, cinematic angle, sense of speed, dramatic sky",
+    templateFashion: "Fashion",
+    templateFashionPrompt: "model walking on a runway, modern clothing, professional fashion photography, studio lighting",
+    templateTravel: "Travel",
+    templateTravelPrompt: "tropical island, crystal clear water, white sand beach, sunset, travel style",
+    templateFood: "Food",
+    templateFoodPrompt: "gourmet dish beautifully plated, restaurant style, soft lighting, high quality photography",
+    templateRealEstate: "Real Estate",
+    templateRealEstatePrompt: "modern house exterior, large windows, green yard, daylight, architectural photography",
+    templateAnime: "Anime",
+    templateAnimePrompt: "anime style character, dynamic pose, vibrant colors, detailed background",
+    template3d: "3D Animation",
+    template3dPrompt: "3D rendered character, soft shadows, modern render style, highly detailed",
+
+    // AI Prompt enhance
+    enhancePrompt: "Enhance with AI",
+    enhancing: "Enhancing...",
+    enhanceFailed: "Could not enhance prompt",
+    enhanceNeedsText: "Write something first",
   },
 };

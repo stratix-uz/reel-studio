@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X, Smartphone, Video, Image as ImageIcon } from "lucide-react";
+import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X, Smartphone, Video, Image as ImageIcon, WandSparkles } from "lucide-react";
 import { auth, googleProvider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, addDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
@@ -228,6 +228,7 @@ export default function App() {
   const [showPricing, setShowPricing] = useState(false);
   const [view, setView] = useState("create");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
   const abortRef = useRef(null);
 
   const RATIOS = mediaType === "video" ? VIDEO_RATIOS : IMAGE_RATIOS;
@@ -426,6 +427,32 @@ export default function App() {
     setPrompt(tpl.prompt);
   }
 
+  async function handleEnhancePrompt() {
+    if (!prompt.trim()) {
+      setErrorMsg(t("enhanceNeedsText"));
+      return;
+    }
+    setEnhancing(true);
+    setErrorMsg("");
+    try {
+      const res = await fetch(`${BACKEND_BASE}/api/enhance-prompt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, mediaType }),
+      });
+      if (!res.ok) throw new Error(t("enhanceFailed"));
+      const data = await res.json();
+      if (data.enhancedPrompt) {
+        setPrompt(data.enhancedPrompt);
+      } else {
+        throw new Error(t("enhanceFailed"));
+      }
+    } catch (err) {
+      setErrorMsg(t("enhanceFailed"));
+    }
+    setEnhancing(false);
+  }
+
   const styleLabel = STYLES.find((s) => s.id === style)?.label ?? style;
   const latestItem = gallery[0] || null;
 
@@ -577,10 +604,27 @@ export default function App() {
 
               <div className="rounded-2xl overflow-hidden bg-white" style={{ border: "1px solid #E4E4E7", boxShadow: "0 4px 30px rgba(139,92,246,.08)" }}>
                 <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-2">
-                  <label className="flex items-center gap-2 text-[11px] sm:text-[12px] font-medium tracking-[0.08em] uppercase mb-3" style={{ color: "#7C3AED" }}>
-                    <Sparkles size={13} strokeWidth={2.5} />
-                    {t("describeScene")}
-                  </label>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="flex items-center gap-2 text-[11px] sm:text-[12px] font-medium tracking-[0.08em] uppercase" style={{ color: "#7C3AED" }}>
+                      <Sparkles size={13} strokeWidth={2.5} />
+                      {t("describeScene")}
+                    </label>
+                    <button
+                      onClick={handleEnhancePrompt}
+                      disabled={enhancing || !prompt.trim()}
+                      className="flex items-center gap-1 text-[11px] font-medium text-[#7C3AED] hover:text-[#6D28D9] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {enhancing ? (
+                        <React.Fragment>
+                          <Loader2 size={12} className="animate-spin" /> {t("enhancing")}
+                        </React.Fragment>
+                      ) : (
+                        <React.Fragment>
+                          <WandSparkles size={12} /> {t("enhancePrompt")}
+                        </React.Fragment>
+                      )}
+                    </button>
+                  </div>
                   <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={t("promptPlaceholder")} rows={4} className="w-full bg-transparent text-[14px] sm:text-[15px] leading-relaxed outline-none resize-none min-h-[90px] sm:min-h-[110px] text-[#18181B]" />
                 </div>
 
