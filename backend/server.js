@@ -278,14 +278,15 @@ app.post("/api/generate-music/start", async (req, res) => {
   const translatedPrompt = await translateToEnglish(prompt);
   const dur = Math.min(Math.max(parseInt(musicDuration) || 8, 4), 30);
 
-  try {
-    const createRes = await fetch("https://api.replicate.com/v1/models/" + MUSIC_MODEL_VERSION + "/predictions", {
+    try {
+    const createRes = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        version: "b05b1dff1d8c6dc63d14b0cdb42135378dcb87f6373b0d3d341ede46e59e2b38",
         input: {
           prompt: translatedPrompt,
           duration: dur,
