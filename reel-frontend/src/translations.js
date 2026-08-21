@@ -177,6 +177,18 @@ export const translations = {
     uploadImage: "Rasm yuklash",
     removeImage: "O'chirish",
     imageToVideoHint: "Yuklangan rasmdan video yaratiladi",
+
+    // Library management
+    favorite: "Sevimli",
+    unfavorite: "Sevimlilardan olib tashlash",
+    copyPrompt: "Promptni nusxalash",
+    copied: "Nusxalandi!",
+    searchPlaceholder: "Prompt bo'yicha qidirish...",
+    filterAll: "Hammasi",
+    filterFavorites: "Sevimlilar",
+    filterVideos: "Videolar",
+    filterImages: "Rasmlar",
+    noResults: "Hech narsa topilmadi",
   },
 
   ru: {
@@ -339,6 +351,18 @@ export const translations = {
     uploadImage: "Загрузить изображение",
     removeImage: "Удалить",
     imageToVideoHint: "Видео будет создано на основе загруженного изображения",
+
+    // Library management
+    favorite: "Избранное",
+    unfavorite: "Убрать из избранного",
+    copyPrompt: "Скопировать промпт",
+    copied: "Скопировано!",
+    searchPlaceholder: "Поиск по промпту...",
+    filterAll: "Все",
+    filterFavorites: "Избранное",
+    filterVideos: "Видео",
+    filterImages: "Изображения",
+    noResults: "Ничего не найдено",
   },
 
   en: {
@@ -501,5 +525,17 @@ export const translations = {
     uploadImage: "Upload image",
     removeImage: "Remove",
     imageToVideoHint: "Video will be generated from the uploaded image",
+
+    // Library management
+    favorite: "Favorite",
+    unfavorite: "Remove from favorites",
+    copyPrompt: "Copy prompt",
+    copied: "Copied!",
+    searchPlaceholder: "Search by prompt...",
+    filterAll: "All",
+    filterFavorites: "Favorites",
+    filterVideos: "Videos",
+    filterImages: "Images",
+    noResults: "Nothing found",
   },
 };

@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X, Smartphone, Video, Image as ImageIcon, WandSparkles, Settings2, ChevronDown, ChevronUp, Upload, Trash2 } from "lucide-react";
+import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X, Smartphone, Video, Image as ImageIcon, WandSparkles, Settings2, ChevronDown, ChevronUp, Upload, Trash2, Star, Copy, Check, Search } from "lucide-react";
 import { auth, googleProvider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc, addDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc, addDoc, collection, query, orderBy, getDocs, updateDoc } from "firebase/firestore";
 import Pricing from "./Pricing";
 import { LANGUAGES, translations } from "./translations";
 
@@ -186,6 +186,58 @@ function LoginScreen({ onLogin, loading, lang, setLang, t }) {
   );
 }
 
+function LibraryCard({ item, t, styleLabel, status, credits, onRegenerate, onToggleFavorite }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard?.writeText(item.prompt).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+
+  return (
+    <div className="rounded-xl overflow-hidden bg-white relative" style={{ border: "1px solid #E4E4E7" }}>
+      <button
+        onClick={() => onToggleFavorite(item)}
+        className="absolute top-2.5 right-2.5 z-10 w-8 h-8 rounded-full flex items-center justify-center bg-white/90 hover:bg-white transition-colors shadow-sm"
+        aria-label={item.isFavorite ? t("unfavorite") : t("favorite")}
+      >
+        <Star size={15} className={item.isFavorite ? "text-[#F59E0B]" : "text-[#A1A1AA]"} fill={item.isFavorite ? "#F59E0B" : "none"} />
+      </button>
+      {item.type === "image" ? (
+        <img src={item.url} alt="" className="w-full block bg-black" style={{ maxHeight: 320, objectFit: "cover" }} />
+      ) : (
+        <video src={item.url} controls className="w-full block bg-black" style={{ maxHeight: 320 }} />
+      )}
+      <div className="px-4 py-3.5">
+        <div className="flex items-start gap-2 mb-1">
+          <p className="text-[13px] text-[#71717A] truncate flex-1">{item.prompt}</p>
+          <button
+            onClick={handleCopy}
+            className="shrink-0 text-[#A1A1AA] hover:text-[#7C3AED] transition-colors"
+            aria-label={t("copyPrompt")}
+          >
+            {copied ? <Check size={13} className="text-[#22C55E]" /> : <Copy size={13} />}
+          </button>
+        </div>
+        <p className="text-[11px] text-[#A1A1AA] mb-3">
+          {styleLabel(item.style)}
+          {item.duration ? ` · ${item.duration}` : ""} · {item.ratio}
+        </p>
+        <div className="flex items-center gap-2">
+          <a href={item.url} download className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors">
+            <Download size={13} /> {t("download")}
+          </a>
+          <button onClick={() => onRegenerate(item)} disabled={status === "generating" || credits <= 0} className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+            <RefreshCw size={13} /> {t("regenerate")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -229,6 +281,10 @@ export default function App() {
     ),
   }));
 
+  function styleLabel(styleId) {
+    return STYLES.find((s) => s.id === styleId)?.label ?? styleId;
+  }
+
   const TEMPLATES = TEMPLATE_IDS.map((id) => ({
     id,
     label: t(id),
@@ -271,8 +327,12 @@ export default function App() {
   const [guidance, setGuidance] = useState(3.5);
 
   // Rasm -> Video
-  const [startImage, setStartImage] = useState(null); // base64 data URI
+  const [startImage, setStartImage] = useState(null);
   const [startImagePreview, setStartImagePreview] = useState(null);
+
+  // Kutubxona: qidirish va filtr
+  const [librarySearch, setLibrarySearch] = useState("");
+  const [libraryFilter, setLibraryFilter] = useState("all"); // all | favorites | videos | images
 
   const RATIOS = mediaType === "video" ? VIDEO_RATIOS : IMAGE_RATIOS;
 
@@ -471,6 +531,7 @@ export default function App() {
       style,
       duration: type === "video" ? duration : null,
       ratio,
+      isFavorite: false,
       createdAt: new Date().toISOString(),
     };
     const docRef = await addDoc(collection(db, "users", user.uid, "videos"), contentDoc);
@@ -501,6 +562,16 @@ export default function App() {
       await generateImage();
     } else {
       await generateVideo();
+    }
+  }
+
+  async function handleToggleFavorite(item) {
+    const newVal = !item.isFavorite;
+    setGallery((g) => g.map((v) => (v.id === item.id ? { ...v, isFavorite: newVal } : v)));
+    try {
+      await updateDoc(doc(db, "users", user.uid, "videos", item.id), { isFavorite: newVal });
+    } catch (err) {
+      console.error("Sevimlilarni yangilashda xatolik:", err);
     }
   }
 
@@ -539,8 +610,16 @@ export default function App() {
     setEnhancing(false);
   }
 
-  const styleLabel = STYLES.find((s) => s.id === style)?.label ?? style;
+  const styleLabelDisplay = STYLES.find((s) => s.id === style)?.label ?? style;
   const latestItem = gallery[0] || null;
+
+  const filteredGallery = gallery.filter((item) => {
+    if (libraryFilter === "favorites" && !item.isFavorite) return false;
+    if (libraryFilter === "videos" && item.type === "image") return false;
+    if (libraryFilter === "images" && item.type !== "image") return false;
+    if (librarySearch.trim() && !item.prompt?.toLowerCase().includes(librarySearch.trim().toLowerCase())) return false;
+    return true;
+  });
 
   if (authLoading) {
     return (
@@ -949,7 +1028,7 @@ export default function App() {
                       <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" style={{ animation: "pulse-dot 1.2s ease-in-out infinite 0.4s" }} />
                     </div>
                     <p className="text-[13px] sm:text-[14px] text-[#71717A]">
-                      {mediaType === "video" ? `${styleLabel} ${t("generatingStyle")}` : `${styleLabel} ${t("generatingImageText")}`}
+                      {mediaType === "video" ? `${styleLabelDisplay} ${t("generatingStyle")}` : `${styleLabelDisplay} ${t("generatingImageText")}`}
                     </p>
                     {mediaType === "video" && (
                       <p className="text-[11px] sm:text-[12px] text-[#A1A1AA] mt-2">{t("generatingTime")}</p>
@@ -986,28 +1065,16 @@ export default function App() {
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               {gallery.slice(1).map((item) => (
-                <div key={item.id} className="rounded-xl overflow-hidden bg-white" style={{ border: "1px solid #E4E4E7" }}>
-                  {item.type === "image" ? (
-                    <img src={item.url} alt="" className="w-full block bg-black" style={{ maxHeight: 320, objectFit: "cover" }} />
-                  ) : (
-                    <video src={item.url} controls className="w-full block bg-black" style={{ maxHeight: 320 }} />
-                  )}
-                  <div className="px-4 py-3.5">
-                    <p className="text-[13px] text-[#71717A] truncate mb-1">{item.prompt}</p>
-                    <p className="text-[11px] text-[#A1A1AA] mb-3">
-                      {STYLES.find((s) => s.id === item.style)?.label}
-                      {item.duration ? ` · ${item.duration}` : ""} · {item.ratio}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <a href={item.url} download className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors">
-                        <Download size={13} /> {t("download")}
-                      </a>
-                      <button onClick={() => handleRegenerate(item)} disabled={status === "generating" || credits <= 0} className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                        <RefreshCw size={13} /> {t("regenerate")}
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <LibraryCard
+                  key={item.id}
+                  item={item}
+                  t={t}
+                  styleLabel={styleLabel}
+                  status={status}
+                  credits={credits}
+                  onRegenerate={handleRegenerate}
+                  onToggleFavorite={handleToggleFavorite}
+                />
               ))}
             </div>
           </div>
@@ -1015,9 +1082,47 @@ export default function App() {
 
         {view === "library" && (
           <div>
-            <h2 className="text-[20px] sm:text-[24px] mb-5 sm:mb-6 tracking-tight" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+            <h2 className="text-[20px] sm:text-[24px] mb-5 tracking-tight" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
               {t("myVideos")}
             </h2>
+
+            {gallery.length > 0 && (
+              <div className="mb-6 space-y-3">
+                <div className="relative">
+                  <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A1A1AA]" />
+                  <input
+                    type="text"
+                    value={librarySearch}
+                    onChange={(e) => setLibrarySearch(e.target.value)}
+                    placeholder={t("searchPlaceholder")}
+                    className="w-full bg-white border border-[#E4E4E7] rounded-xl pl-10 pr-4 py-2.5 text-[13px] sm:text-[14px] outline-none focus:border-[#8B5CF6] transition-colors text-[#18181B]"
+                  />
+                </div>
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                  {[
+                    { id: "all", label: t("filterAll") },
+                    { id: "favorites", label: t("filterFavorites") },
+                    { id: "videos", label: t("filterVideos") },
+                    { id: "images", label: t("filterImages") },
+                  ].map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => setLibraryFilter(f.id)}
+                      className="shrink-0 text-[12px] font-medium rounded-full px-3.5 py-1.5 border transition-colors whitespace-nowrap"
+                      style={
+                        libraryFilter === f.id
+                          ? { background: "rgba(139,92,246,0.1)", borderColor: "#8B5CF6", color: "#7C3AED" }
+                          : { background: "#FFFFFF", borderColor: "#E4E4E7", color: "#71717A" }
+                      }
+                    >
+                      {f.id === "favorites" && <Star size={11} className="inline mr-1 -mt-0.5" />}
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {gallery.length === 0 ? (
               <div className="text-center py-16 sm:py-20">
                 <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-white" style={{ border: "1px solid #E4E4E7" }}>
@@ -1028,31 +1133,23 @@ export default function App() {
                   <Zap size={14} /> {t("generateVideo")}
                 </button>
               </div>
+            ) : filteredGallery.length === 0 ? (
+              <div className="text-center py-16 sm:py-20">
+                <p className="text-[14px] text-[#A1A1AA]">{t("noResults")}</p>
+              </div>
             ) : (
               <div className="grid sm:grid-cols-2 gap-4">
-                {gallery.map((item) => (
-                  <div key={item.id} className="rounded-xl overflow-hidden bg-white" style={{ border: "1px solid #E4E4E7" }}>
-                    {item.type === "image" ? (
-                      <img src={item.url} alt="" className="w-full block bg-black" style={{ maxHeight: 320, objectFit: "cover" }} />
-                    ) : (
-                      <video src={item.url} controls className="w-full block bg-black" style={{ maxHeight: 320 }} />
-                    )}
-                    <div className="px-4 py-3.5">
-                      <p className="text-[13px] text-[#71717A] truncate mb-1">{item.prompt}</p>
-                      <p className="text-[11px] text-[#A1A1AA] mb-3">
-                        {STYLES.find((s) => s.id === item.style)?.label}
-                        {item.duration ? ` · ${item.duration}` : ""} · {item.ratio}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <a href={item.url} download className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors">
-                          <Download size={13} /> {t("download")}
-                        </a>
-                        <button onClick={() => handleRegenerate(item)} disabled={status === "generating" || credits <= 0} className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                          <RefreshCw size={13} /> {t("regenerate")}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                {filteredGallery.map((item) => (
+                  <LibraryCard
+                    key={item.id}
+                    item={item}
+                    t={t}
+                    styleLabel={styleLabel}
+                    status={status}
+                    credits={credits}
+                    onRegenerate={handleRegenerate}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
                 ))}
               </div>
             )}
