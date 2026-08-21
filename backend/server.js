@@ -18,7 +18,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
-const MODEL_VERSION = "kwaivgi/kling-v1.6-standard";
+const VIDEO_MODEL_VERSION = "kwaivgi/kling-v1.6-standard";
+const IMAGE_MODEL_VERSION = "black-forest-labs/flux-schnell";
 
 const CLICK_SERVICE_ID = process.env.CLICK_SERVICE_ID;
 const CLICK_MERCHANT_ID = process.env.CLICK_MERCHANT_ID;
@@ -41,6 +42,13 @@ const PLANS = {
 // Chegirma faqat shu rejalar uchun amal qiladi
 const DISCOUNTABLE_PLANS = ["pro", "max"];
 
+// Rasm o'lcham nisbati -> piksel o'lchamlari (FLUX schnell talab qiladigan format)
+const IMAGE_ASPECT_MAP = {
+  "16:9": "16:9",
+  "9:16": "9:16",
+  "1:1": "1:1",
+};
+
 // Vaqtinchalik xotirada saqlanadigan buyurtmalar
 const orders = {};
 
@@ -58,7 +66,7 @@ app.post("/api/generate-video/start", async (req, res) => {
   const fullPrompt = `${prompt}, ${style} style`;
 
   try {
-    const createRes = await fetch("https://api.replicate.com/v1/models/" + MODEL_VERSION + "/predictions", {
+    const createRes = await fetch("https://api.replicate.com/v1/models/" + VIDEO_MODEL_VERSION + "/predictions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
@@ -101,6 +109,72 @@ app.get("/api/generate-video/status/:id", async (req, res) => {
     }
     if (prediction.status === "failed" || prediction.status === "canceled") {
       return res.json({ status: "failed", error: prediction.error || "Video yaratish muvaffaqiyatsiz tugadi" });
+    }
+    res.json({ status: prediction.status });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============ RASM GENERATSIYA: BOSHLASH ============
+app.post("/api/generate-image/start", async (req, res) => {
+  const { prompt, style, ratio } = req.body;
+
+  if (!prompt || prompt.trim().length < 3) {
+    return res.status(400).json({ error: "Prompt juda qisqa" });
+  }
+  if (!REPLICATE_API_TOKEN) {
+    return res.status(500).json({ error: "REPLICATE_API_TOKEN sozlanmagan (.env faylini tekshiring)" });
+  }
+
+  const fullPrompt = `${prompt}, ${style} style`;
+  const aspectRatio = IMAGE_ASPECT_MAP[ratio] || "1:1";
+
+  try {
+    const createRes = await fetch("https://api.replicate.com/v1/models/" + IMAGE_MODEL_VERSION + "/predictions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        input: {
+          prompt: fullPrompt,
+          aspect_ratio: aspectRatio,
+          output_format: "png",
+        },
+      }),
+    });
+
+    if (!createRes.ok) {
+      const errText = await createRes.text();
+      throw new Error(`Replicate xatosi: ${errText}`);
+    }
+
+    const prediction = await createRes.json();
+    res.json({ predictionId: prediction.id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============ RASM GENERATSIYA: HOLATNI TEKSHIRISH ============
+app.get("/api/generate-image/status/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
+      headers: { Authorization: `Bearer ${REPLICATE_API_TOKEN}` },
+    });
+    const prediction = await pollRes.json();
+
+    if (prediction.status === "succeeded") {
+      const imageUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+      return res.json({ status: "succeeded", imageUrl });
+    }
+    if (prediction.status === "failed" || prediction.status === "canceled") {
+      return res.json({ status: "failed", error: prediction.error || "Rasm yaratish muvaffaqiyatsiz tugadi" });
     }
     res.json({ status: prediction.status });
   } catch (err) {
