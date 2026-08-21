@@ -26,6 +26,8 @@ const CLICK_MERCHANT_ID = process.env.CLICK_MERCHANT_ID;
 const CLICK_SECRET_KEY = process.env.CLICK_SECRET_KEY;
 const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY;
 
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+
 // Hamkorlik / referal dasturi sozlamalari
 const PARTNER_SECRET_KEY = process.env.PARTNER_SECRET_KEY;
 const PARTNER_REFERRAL_ID = "1118725021";
@@ -47,11 +49,11 @@ const IMAGE_ASPECT_MAP = {
   "16:9": "16:9",
   "9:16": "9:16",
   "1:1": "1:1",
+  "4:5": "4:5",
+  "21:9": "21:9",
 };
 
 // Promptni avtomatik inglizchaga tarjima qilish
-// (FLUX kabi rasm modellari asosan inglizcha matnni yaxshiroq tushunadi,
-// o'zbekcha prompt yuborilganda mos kelmaydigan natijalar chiqishi mumkin)
 async function translateToEnglish(text) {
   try {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(text)}`;
@@ -197,6 +199,58 @@ app.get("/api/generate-image/status/:id", async (req, res) => {
     res.json({ status: prediction.status });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============ AI: PROMPTNI YAXSHILASH ============
+app.post("/api/enhance-prompt", async (req, res) => {
+  const { prompt, mediaType } = req.body;
+
+  if (!prompt || prompt.trim().length < 2) {
+    return res.status(400).json({ error: "Prompt juda qisqa" });
+  }
+  if (!ANTHROPIC_API_KEY) {
+    return res.status(500).json({ error: "ANTHROPIC_API_KEY sozlanmagan" });
+  }
+
+  const kind = mediaType === "image" ? "image" : "video";
+
+  const systemPrompt = `You are a professional prompt engineer for AI ${kind} generation (like Midjourney/Runway/Kling style). 
+The user will give you a short idea, possibly in Uzbek, Russian, or English. 
+Rewrite it into a single, vivid, detailed, professional English prompt suitable for cinematic AI ${kind} generation. 
+Include visual details: lighting, camera angle/movement, mood, composition, quality descriptors. 
+Keep it to 1-3 sentences, no explanations, no quotes, just the final prompt text in English.`;
+
+  try {
+    const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-5-20250929",
+        max_tokens: 300,
+        system: systemPrompt,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!claudeRes.ok) {
+      const errText = await claudeRes.text();
+      throw new Error(`Claude API xatosi: ${errText}`);
+    }
+
+    const data = await claudeRes.json();
+    const enhanced = data.content?.[0]?.text?.trim();
+
+    if (!enhanced) throw new Error("Bo'sh javob qaytdi");
+
+    res.json({ enhancedPrompt: enhanced });
+  } catch (err) {
+    console.error("Prompt yaxshilash xatosi:", err);
     res.status(500).json({ error: err.message });
   }
 });
