@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X, Smartphone, Video, Image as ImageIcon, WandSparkles } from "lucide-react";
+import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X, Smartphone, Video, Image as ImageIcon, WandSparkles, Settings2, ChevronDown, ChevronUp } from "lucide-react";
 import { auth, googleProvider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, addDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
@@ -10,6 +10,34 @@ const STYLE_IDS = ["cinematic", "anime", "realistic", "3d"];
 const DURATIONS = ["5s", "10s"];
 const VIDEO_RATIOS = ["16:9", "9:16", "1:1"];
 const IMAGE_RATIOS = ["16:9", "9:16", "1:1", "4:5", "21:9"];
+
+const CAMERA_MOVEMENTS = ["none", "zoom_in", "zoom_out", "pan_left", "pan_right", "tilt", "orbit", "static"];
+const CAMERA_MOVEMENT_LABEL_KEYS = {
+  none: "camNone",
+  zoom_in: "camZoomIn",
+  zoom_out: "camZoomOut",
+  pan_left: "camPanLeft",
+  pan_right: "camPanRight",
+  tilt: "camTilt",
+  orbit: "camOrbit",
+  static: "camStatic",
+};
+
+const CAMERA_TYPES = ["none", "cinematic", "drone", "handheld", "fpv"];
+const CAMERA_TYPE_LABEL_KEYS = {
+  none: "camNone",
+  cinematic: "camTypeCinematic",
+  drone: "camTypeDrone",
+  handheld: "camTypeHandheld",
+  fpv: "camTypeFpv",
+};
+
+const MOTION_LEVELS = ["low", "medium", "high"];
+const MOTION_LEVEL_LABEL_KEYS = {
+  low: "motionLow",
+  medium: "motionMedium",
+  high: "motionHigh",
+};
 
 const BACKEND_BASE = "https://reel-studio-production-b994.up.railway.app";
 const APK_URL = "/downloads/reelstudio.apk";
@@ -231,6 +259,16 @@ export default function App() {
   const [enhancing, setEnhancing] = useState(false);
   const abortRef = useRef(null);
 
+  // Kengaytirilgan sozlamalar
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [cameraMovement, setCameraMovement] = useState("none");
+  const [cameraType, setCameraType] = useState("none");
+  const [motionLevel, setMotionLevel] = useState("medium");
+  const [cfgScale, setCfgScale] = useState(0.5);
+  const [negativePrompt, setNegativePrompt] = useState("");
+  const [seed, setSeed] = useState("");
+  const [guidance, setGuidance] = useState(3.5);
+
   const RATIOS = mediaType === "video" ? VIDEO_RATIOS : IMAGE_RATIOS;
 
   useEffect(() => {
@@ -304,10 +342,18 @@ export default function App() {
     setStatus("generating");
     setErrorMsg("");
     try {
+      const advanced = {
+        cameraMovement,
+        cameraType,
+        motionLevel,
+        cfgScale,
+        negativePrompt,
+      };
+
       const startRes = await fetch(`${BACKEND_BASE}/api/generate-video/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, style, duration, ratio, uid: user.uid }),
+        body: JSON.stringify({ prompt, style, duration, ratio, uid: user.uid, advanced }),
       });
       if (!startRes.ok) throw new Error(`${t("serverError")}: ${startRes.status}`);
       const startData = await startRes.json();
@@ -340,10 +386,16 @@ export default function App() {
     setStatus("generating");
     setErrorMsg("");
     try {
+      const advanced = {};
+      if (seed !== "" && !isNaN(parseInt(seed))) {
+        advanced.seed = parseInt(seed);
+      }
+      advanced.guidance = guidance;
+
       const startRes = await fetch(`${BACKEND_BASE}/api/generate-image/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, style, ratio, uid: user.uid }),
+        body: JSON.stringify({ prompt, style, ratio, uid: user.uid, advanced }),
       });
       if (!startRes.ok) throw new Error(`${t("serverError")}: ${startRes.status}`);
       const startData = await startRes.json();
@@ -661,6 +713,122 @@ export default function App() {
                       ))}
                     </select>
                   </div>
+                </div>
+
+                {/* KENGAYTIRILGAN SOZLAMALAR */}
+                <div className="border-t border-[#E4E4E7]">
+                  <button
+                    onClick={() => setShowAdvanced((s) => !s)}
+                    className="w-full flex items-center justify-between px-4 sm:px-6 py-3 text-[12px] font-medium text-[#71717A] hover:text-[#18181B] transition-colors"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Settings2 size={13} /> {t("advancedSettings")}
+                    </span>
+                    {showAdvanced ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                  </button>
+
+                  {showAdvanced && (
+                    <div className="px-4 sm:px-6 pb-5 space-y-4">
+                      {mediaType === "video" ? (
+                        <React.Fragment>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[10px] sm:text-[11px] text-[#71717A] mb-1.5">{t("cameraMovement")}</label>
+                              <select value={cameraMovement} onChange={(e) => setCameraMovement(e.target.value)} className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-2 text-[12px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]">
+                                {CAMERA_MOVEMENTS.map((c) => (
+                                  <option key={c} value={c}>{t(CAMERA_MOVEMENT_LABEL_KEYS[c])}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] sm:text-[11px] text-[#71717A] mb-1.5">{t("cameraType")}</label>
+                              <select value={cameraType} onChange={(e) => setCameraType(e.target.value)} className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-2 text-[12px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]">
+                                {CAMERA_TYPES.map((c) => (
+                                  <option key={c} value={c}>{t(CAMERA_TYPE_LABEL_KEYS[c])}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] sm:text-[11px] text-[#71717A] mb-1.5">{t("motionLevel")}</label>
+                            <div className="flex gap-2">
+                              {MOTION_LEVELS.map((m) => (
+                                <button
+                                  key={m}
+                                  onClick={() => setMotionLevel(m)}
+                                  className="flex-1 text-[12px] font-medium py-2 rounded-lg border transition-colors"
+                                  style={
+                                    motionLevel === m
+                                      ? { background: "rgba(139,92,246,0.1)", borderColor: "#8B5CF6", color: "#7C3AED" }
+                                      : { background: "#F7F7FA", borderColor: "#E4E4E7", color: "#71717A" }
+                                  }
+                                >
+                                  {t(MOTION_LEVEL_LABEL_KEYS[m])}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="text-[10px] sm:text-[11px] text-[#71717A]">{t("cfgScale")}</label>
+                              <span className="text-[11px] text-[#7C3AED] font-medium">{cfgScale.toFixed(2)}</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.05"
+                              value={cfgScale}
+                              onChange={(e) => setCfgScale(parseFloat(e.target.value))}
+                              className="w-full accent-[#8B5CF6]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] sm:text-[11px] text-[#71717A] mb-1.5">{t("negativePrompt")}</label>
+                            <input
+                              type="text"
+                              value={negativePrompt}
+                              onChange={(e) => setNegativePrompt(e.target.value)}
+                              placeholder={t("negativePromptPlaceholder")}
+                              className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-3 py-2 text-[12px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors text-[#18181B]"
+                            />
+                          </div>
+                        </React.Fragment>
+                      ) : (
+                        <React.Fragment>
+                          <div>
+                            <label className="block text-[10px] sm:text-[11px] text-[#71717A] mb-1.5">{t("seed")}</label>
+                            <input
+                              type="number"
+                              value={seed}
+                              onChange={(e) => setSeed(e.target.value)}
+                              placeholder={t("seedPlaceholder")}
+                              className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-3 py-2 text-[12px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors text-[#18181B]"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="text-[10px] sm:text-[11px] text-[#71717A]">{t("guidance")}</label>
+                              <span className="text-[11px] text-[#7C3AED] font-medium">{guidance.toFixed(1)}</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="10"
+                              step="0.5"
+                              value={guidance}
+                              onChange={(e) => setGuidance(parseFloat(e.target.value))}
+                              className="w-full accent-[#8B5CF6]"
+                            />
+                          </div>
+                        </React.Fragment>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
