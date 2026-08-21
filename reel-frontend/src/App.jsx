@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X, Smartphone, Video, Image as ImageIcon, WandSparkles, Settings2, ChevronDown, ChevronUp, Upload, Trash2, Star, Copy, Check, Search } from "lucide-react";
+import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X, Smartphone, Video, Image as ImageIcon, WandSparkles, Settings2, ChevronDown, ChevronUp, Upload, Trash2, Star, Copy, Check, Search, Music2 } from "lucide-react";
 import { auth, googleProvider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, addDoc, collection, query, orderBy, getDocs, updateDoc } from "firebase/firestore";
@@ -56,7 +56,6 @@ const TEMPLATE_IDS = [
   "template3d",
 ];
 
-// Progress bosqichlari: [foiz chegarasi, matn kaliti]
 const VIDEO_STAGES = [
   [0, "stageScene"],
   [30, "stageMotion"],
@@ -67,6 +66,11 @@ const IMAGE_STAGES = [
   [0, "stageComposing"],
   [40, "stageDetails"],
   [75, "stageFinalizing"],
+];
+const MUSIC_STAGES = [
+  [0, "stageComposingMusic"],
+  [40, "stageArranging"],
+  [75, "stageMixing"],
 ];
 
 function BackgroundGlow() {
@@ -220,6 +224,16 @@ function LibraryCard({ item, t, styleLabel, status, credits, onRegenerate, onTog
       </button>
       {item.type === "image" ? (
         <img src={item.url} alt="" className="w-full block bg-black" style={{ maxHeight: 320, objectFit: "cover" }} />
+      ) : item.type === "music" ? (
+        <div className="w-full flex items-center justify-center bg-gradient-to-br from-[#8B5CF6]/10 to-[#3B82F6]/10 p-6" style={{ minHeight: 140 }}>
+          <div className="w-full">
+            <div className="flex items-center gap-2 mb-3 text-[#7C3AED]">
+              <Music2 size={18} />
+              <span className="text-[12px] font-medium">Audio track</span>
+            </div>
+            <audio src={item.url} controls className="w-full" />
+          </div>
+        </div>
       ) : (
         <video src={item.url} controls className="w-full block bg-black" style={{ maxHeight: 320 }} />
       )}
@@ -235,16 +249,19 @@ function LibraryCard({ item, t, styleLabel, status, credits, onRegenerate, onTog
           </button>
         </div>
         <p className="text-[11px] text-[#A1A1AA] mb-3">
-          {styleLabel(item.style)}
-          {item.duration ? ` · ${item.duration}` : ""} · {item.ratio}
+          {item.type === "music" ? "" : styleLabel(item.style) + " · "}
+          {item.duration ? `${item.duration}` : ""}
+          {item.type !== "music" && item.ratio ? ` · ${item.ratio}` : ""}
         </p>
         <div className="flex items-center gap-2">
           <a href={item.url} download className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors">
             <Download size={13} /> {t("download")}
           </a>
-          <button onClick={() => onRegenerate(item)} disabled={status === "generating" || credits <= 0} className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-            <RefreshCw size={13} /> {t("regenerate")}
-          </button>
+          {item.type !== "music" && (
+            <button onClick={() => onRegenerate(item)} disabled={status === "generating" || credits <= 0} className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+              <RefreshCw size={13} /> {t("regenerate")}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -314,11 +331,12 @@ export default function App() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [credits, setCredits] = useState(null);
 
-  const [mediaType, setMediaType] = useState("video");
+  const [mediaType, setMediaType] = useState("video"); // "video" | "image" | "music"
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("cinematic");
   const [duration, setDuration] = useState("5s");
   const [ratio, setRatio] = useState("16:9");
+  const [musicDuration, setMusicDuration] = useState(8);
   const [status, setStatus] = useState("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [gallery, setGallery] = useState([]);
@@ -329,11 +347,9 @@ export default function App() {
   const abortRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Progress simulyatsiyasi
   const [progress, setProgress] = useState(0);
   const progressIntervalRef = useRef(null);
 
-  // Kengaytirilgan sozlamalar
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [cameraMovement, setCameraMovement] = useState("none");
   const [cameraType, setCameraType] = useState("none");
@@ -343,11 +359,9 @@ export default function App() {
   const [seed, setSeed] = useState("");
   const [guidance, setGuidance] = useState(3.5);
 
-  // Rasm -> Video
   const [startImage, setStartImage] = useState(null);
   const [startImagePreview, setStartImagePreview] = useState(null);
 
-  // Kutubxona: qidirish va filtr
   const [librarySearch, setLibrarySearch] = useState("");
   const [libraryFilter, setLibraryFilter] = useState("all");
 
@@ -358,7 +372,7 @@ export default function App() {
     if (!list.includes(ratio)) {
       setRatio(list[0]);
     }
-    if (mediaType === "image") {
+    if (mediaType !== "video") {
       setStartImage(null);
       setStartImagePreview(null);
     }
@@ -404,14 +418,14 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // Progressni boshqarish: generatsiya boshlanganda taxminiy vaqt bo'yicha o'sadi
   useEffect(() => {
     if (status === "generating") {
       setProgress(0);
-      const estimatedMs = mediaType === "video" ? (duration === "10s" ? 150000 : 90000) : 15000;
+      const estimatedMs =
+        mediaType === "video" ? (duration === "10s" ? 150000 : 90000) : mediaType === "music" ? musicDuration * 3000 : 15000;
       const tickMs = 400;
       const maxProgress = 95;
-      const increment = (maxProgress / (estimatedMs / tickMs));
+      const increment = maxProgress / (estimatedMs / tickMs);
 
       progressIntervalRef.current = setInterval(() => {
         setProgress((p) => {
@@ -437,7 +451,7 @@ export default function App() {
   }, [status]);
 
   function currentStageLabel() {
-    const stages = mediaType === "video" ? VIDEO_STAGES : IMAGE_STAGES;
+    const stages = mediaType === "video" ? VIDEO_STAGES : mediaType === "music" ? MUSIC_STAGES : IMAGE_STAGES;
     let label = stages[0][1];
     for (const [threshold, key] of stages) {
       if (progress >= threshold) label = key;
@@ -576,6 +590,42 @@ export default function App() {
     }
   }
 
+  async function generateMusic() {
+    setStatus("generating");
+    setErrorMsg("");
+    try {
+      const startRes = await fetch(`${BACKEND_BASE}/api/generate-music/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, musicDuration, uid: user.uid }),
+      });
+      if (!startRes.ok) throw new Error(`${t("serverError")}: ${startRes.status}`);
+      const startData = await startRes.json();
+      if (!startData.predictionId) throw new Error(t("musicNotStarted"));
+
+      const predictionId = startData.predictionId;
+      let mediaUrl = null;
+
+      while (!mediaUrl) {
+        await new Promise((r) => setTimeout(r, 3000));
+        const pollRes = await fetch(`${BACKEND_BASE}/api/generate-music/status/${predictionId}`);
+        if (!pollRes.ok) throw new Error(`${t("statusCheckError")}: ${pollRes.status}`);
+        const pollData = await pollRes.json();
+
+        if (pollData.status === "succeeded") {
+          mediaUrl = pollData.audioUrl;
+        } else if (pollData.status === "failed") {
+          throw new Error(pollData.error || t("musicGenerationFailed"));
+        }
+      }
+
+      await finalizeGeneration(mediaUrl, "music");
+    } catch (err) {
+      setErrorMsg(err.message.includes("Failed to fetch") ? t("backendConnectionError") : err.message);
+      setStatus("error");
+    }
+  }
+
   async function finalizeGeneration(url, type) {
     const userRef = doc(db, "users", user.uid);
     const newCredits = Math.max(0, (credits ?? 1) - 1);
@@ -586,9 +636,9 @@ export default function App() {
       url,
       type,
       prompt,
-      style,
-      duration: type === "video" ? duration : null,
-      ratio,
+      style: type === "music" ? null : style,
+      duration: type === "video" ? duration : type === "music" ? `${musicDuration}s` : null,
+      ratio: type === "music" ? null : ratio,
       isFavorite: false,
       createdAt: new Date().toISOString(),
     };
@@ -602,22 +652,26 @@ export default function App() {
     if (!canGenerate) return;
     if (mediaType === "video") {
       await generateVideo();
-    } else {
+    } else if (mediaType === "image") {
       await generateImage();
+    } else {
+      await generateMusic();
     }
   }
 
   async function handleRegenerate(item) {
     if (status === "generating" || credits <= 0) return;
     setPrompt(item.prompt);
-    setStyle(item.style);
-    if (item.duration) setDuration(item.duration);
-    setRatio(item.ratio);
-    setMediaType(item.type === "image" ? "image" : "video");
+    if (item.style) setStyle(item.style);
+    if (item.duration && item.type === "video") setDuration(item.duration);
+    if (item.ratio) setRatio(item.ratio);
+    setMediaType(item.type === "image" ? "image" : item.type === "music" ? "music" : "video");
     setView("create");
     setMenuOpen(false);
     if (item.type === "image") {
       await generateImage();
+    } else if (item.type === "music") {
+      await generateMusic();
     } else {
       await generateVideo();
     }
@@ -673,7 +727,7 @@ export default function App() {
 
   const filteredGallery = gallery.filter((item) => {
     if (libraryFilter === "favorites" && !item.isFavorite) return false;
-    if (libraryFilter === "videos" && item.type === "image") return false;
+    if (libraryFilter === "videos" && item.type !== "video") return false;
     if (libraryFilter === "images" && item.type !== "image") return false;
     if (librarySearch.trim() && !item.prompt?.toLowerCase().includes(librarySearch.trim().toLowerCase())) return false;
     return true;
@@ -806,24 +860,29 @@ export default function App() {
                 <button onClick={() => setMediaType("image")} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium transition-all" style={mediaType === "image" ? { background: "#FFFFFF", color: "#18181B", boxShadow: "0 1px 3px rgba(0,0,0,.1)" } : { color: "#71717A" }}>
                   <ImageIcon size={14} /> {t("modeImage")}
                 </button>
+                <button onClick={() => setMediaType("music")} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium transition-all" style={mediaType === "music" ? { background: "#FFFFFF", color: "#18181B", boxShadow: "0 1px 3px rgba(0,0,0,.1)" } : { color: "#71717A" }}>
+                  <Music2 size={14} /> {t("modeMusic")}
+                </button>
               </div>
 
-              <div className="mb-5">
-                <label className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium tracking-[0.08em] uppercase mb-2.5 text-[#71717A]">
-                  <Sparkles size={11} /> {t("templatesTitle")}
-                </label>
-                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
-                  {TEMPLATES.map((tpl) => (
-                    <button
-                      key={tpl.id}
-                      onClick={() => applyTemplate(tpl)}
-                      className="shrink-0 text-[12px] font-medium text-[#71717A] bg-white border border-[#E4E4E7] rounded-full px-3.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors whitespace-nowrap"
-                    >
-                      {tpl.label}
-                    </button>
-                  ))}
+              {mediaType !== "music" && (
+                <div className="mb-5">
+                  <label className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium tracking-[0.08em] uppercase mb-2.5 text-[#71717A]">
+                    <Sparkles size={11} /> {t("templatesTitle")}
+                  </label>
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
+                    {TEMPLATES.map((tpl) => (
+                      <button
+                        key={tpl.id}
+                        onClick={() => applyTemplate(tpl)}
+                        className="shrink-0 text-[12px] font-medium text-[#71717A] bg-white border border-[#E4E4E7] rounded-full px-3.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors whitespace-nowrap"
+                      >
+                        {tpl.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {mediaType === "video" && (
                 <div className="mb-5">
@@ -886,159 +945,184 @@ export default function App() {
                       )}
                     </button>
                   </div>
-                  <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={t("promptPlaceholder")} rows={4} className="w-full bg-transparent text-[14px] sm:text-[15px] leading-relaxed outline-none resize-none min-h-[90px] sm:min-h-[110px] text-[#18181B]" />
+                  <textarea
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder={mediaType === "music" ? t("musicPromptPlaceholder") : t("promptPlaceholder")}
+                    rows={4}
+                    className="w-full bg-transparent text-[14px] sm:text-[15px] leading-relaxed outline-none resize-none min-h-[90px] sm:min-h-[110px] text-[#18181B]"
+                  />
                 </div>
 
-                <div className={`border-t border-[#E4E4E7] px-4 sm:px-6 py-4 sm:py-5 grid ${mediaType === "video" ? "grid-cols-3" : "grid-cols-2"} gap-2 sm:gap-3`}>
-                  <div>
+                {mediaType === "music" ? (
+                  <div className="border-t border-[#E4E4E7] px-4 sm:px-6 py-4 sm:py-5">
                     <label className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] text-[#71717A] mb-1.5 sm:mb-2 tracking-wide">
-                      <Wand2 size={11} /> <span className="truncate">{t("style")}</span>
+                      <Clock size={11} /> <span className="truncate">{t("musicDuration")}</span>
                     </label>
-                    <select value={style} onChange={(e) => setStyle(e.target.value)} className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-1.5 sm:px-2.5 py-2 sm:py-2.5 text-[11px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]">
-                      {STYLES.map((s) => (
-                        <option key={s.id} value={s.id}>{s.label}</option>
-                      ))}
-                    </select>
+                    <input
+                      type="range"
+                      min="4"
+                      max="30"
+                      step="1"
+                      value={musicDuration}
+                      onChange={(e) => setMusicDuration(parseInt(e.target.value))}
+                      className="w-full accent-[#8B5CF6]"
+                    />
+                    <div className="text-right text-[12px] text-[#7C3AED] font-medium mt-1">{musicDuration}s</div>
                   </div>
-                  {mediaType === "video" && (
+                ) : (
+                  <div className={`border-t border-[#E4E4E7] px-4 sm:px-6 py-4 sm:py-5 grid ${mediaType === "video" ? "grid-cols-3" : "grid-cols-2"} gap-2 sm:gap-3`}>
                     <div>
                       <label className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] text-[#71717A] mb-1.5 sm:mb-2 tracking-wide">
-                        <Clock size={11} /> <span className="truncate">{t("duration")}</span>
+                        <Wand2 size={11} /> <span className="truncate">{t("style")}</span>
                       </label>
-                      <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-1.5 sm:px-2.5 py-2 sm:py-2.5 text-[11px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]">
-                        {DURATIONS.map((d) => (
-                          <option key={d} value={d}>{d}</option>
+                      <select value={style} onChange={(e) => setStyle(e.target.value)} className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-1.5 sm:px-2.5 py-2 sm:py-2.5 text-[11px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]">
+                        {STYLES.map((s) => (
+                          <option key={s.id} value={s.id}>{s.label}</option>
                         ))}
                       </select>
                     </div>
-                  )}
-                  <div>
-                    <label className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] text-[#71717A] mb-1.5 sm:mb-2 tracking-wide">
-                      <Ratio size={11} /> <span className="truncate">{t("ratio")}</span>
-                    </label>
-                    <select value={ratio} onChange={(e) => setRatio(e.target.value)} className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-1.5 sm:px-2.5 py-2 sm:py-2.5 text-[11px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]">
-                      {RATIOS.map((r) => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* KENGAYTIRILGAN SOZLAMALAR */}
-                <div className="border-t border-[#E4E4E7]">
-                  <button
-                    onClick={() => setShowAdvanced((s) => !s)}
-                    className="w-full flex items-center justify-between px-4 sm:px-6 py-3 text-[12px] font-medium text-[#71717A] hover:text-[#18181B] transition-colors"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <Settings2 size={13} /> {t("advancedSettings")}
-                    </span>
-                    {showAdvanced ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                  </button>
-
-                  {showAdvanced && (
-                    <div className="px-4 sm:px-6 pb-5 space-y-4">
-                      {mediaType === "video" ? (
-                        <React.Fragment>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block text-[10px] sm:text-[11px] text-[#71717A] mb-1.5">{t("cameraMovement")}</label>
-                              <select value={cameraMovement} onChange={(e) => setCameraMovement(e.target.value)} className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-2 text-[12px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]">
-                                {CAMERA_MOVEMENTS.map((c) => (
-                                  <option key={c} value={c}>{t(CAMERA_MOVEMENT_LABEL_KEYS[c])}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <label className="block text-[10px] sm:text-[11px] text-[#71717A] mb-1.5">{t("cameraType")}</label>
-                              <select value={cameraType} onChange={(e) => setCameraType(e.target.value)} className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-2 text-[12px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]">
-                                {CAMERA_TYPES.map((c) => (
-                                  <option key={c} value={c}>{t(CAMERA_TYPE_LABEL_KEYS[c])}</option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-[10px] sm:text-[11px] text-[#71717A] mb-1.5">{t("motionLevel")}</label>
-                            <div className="flex gap-2">
-                              {MOTION_LEVELS.map((m) => (
-                                <button
-                                  key={m}
-                                  onClick={() => setMotionLevel(m)}
-                                  className="flex-1 text-[12px] font-medium py-2 rounded-lg border transition-colors"
-                                  style={
-                                    motionLevel === m
-                                      ? { background: "rgba(139,92,246,0.1)", borderColor: "#8B5CF6", color: "#7C3AED" }
-                                      : { background: "#F7F7FA", borderColor: "#E4E4E7", color: "#71717A" }
-                                  }
-                                >
-                                  {t(MOTION_LEVEL_LABEL_KEYS[m])}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <label className="text-[10px] sm:text-[11px] text-[#71717A]">{t("cfgScale")}</label>
-                              <span className="text-[11px] text-[#7C3AED] font-medium">{cfgScale.toFixed(2)}</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0"
-                              max="1"
-                              step="0.05"
-                              value={cfgScale}
-                              onChange={(e) => setCfgScale(parseFloat(e.target.value))}
-                              className="w-full accent-[#8B5CF6]"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[10px] sm:text-[11px] text-[#71717A] mb-1.5">{t("negativePrompt")}</label>
-                            <input
-                              type="text"
-                              value={negativePrompt}
-                              onChange={(e) => setNegativePrompt(e.target.value)}
-                              placeholder={t("negativePromptPlaceholder")}
-                              className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-3 py-2 text-[12px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors text-[#18181B]"
-                            />
-                          </div>
-                        </React.Fragment>
-                      ) : (
-                        <React.Fragment>
-                          <div>
-                            <label className="block text-[10px] sm:text-[11px] text-[#71717A] mb-1.5">{t("seed")}</label>
-                            <input
-                              type="number"
-                              value={seed}
-                              onChange={(e) => setSeed(e.target.value)}
-                              placeholder={t("seedPlaceholder")}
-                              className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-3 py-2 text-[12px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors text-[#18181B]"
-                            />
-                          </div>
-
-                          <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <label className="text-[10px] sm:text-[11px] text-[#71717A]">{t("guidance")}</label>
-                              <span className="text-[11px] text-[#7C3AED] font-medium">{guidance.toFixed(1)}</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0"
-                              max="10"
-                              step="0.5"
-                              value={guidance}
-                              onChange={(e) => setGuidance(parseFloat(e.target.value))}
-                              className="w-full accent-[#8B5CF6]"
-                            />
-                          </div>
-                        </React.Fragment>
-                      )}
+                    {mediaType === "video" && (
+                      <div>
+                        <label className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] text-[#71717A] mb-1.5 sm:mb-2 tracking-wide">
+                          <Clock size={11} /> <span className="truncate">{t("duration")}</span>
+                        </label>
+                        <select value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-1.5 sm:px-2.5 py-2 sm:py-2.5 text-[11px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]">
+                          {DURATIONS.map((d) => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    <div>
+                      <label className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] text-[#71717A] mb-1.5 sm:mb-2 tracking-wide">
+                        <Ratio size={11} /> <span className="truncate">{t("ratio")}</span>
+                      </label>
+                      <select value={ratio} onChange={(e) => setRatio(e.target.value)} className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-1.5 sm:px-2.5 py-2 sm:py-2.5 text-[11px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]">
+                        {RATIOS.map((r) => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+
+                {mediaType !== "music" && (
+                  <div className="border-t border-[#E4E4E7]">
+                    <button
+                      onClick={() => setShowAdvanced((s) => !s)}
+                      className="w-full flex items-center justify-between px-4 sm:px-6 py-3 text-[12px] font-medium text-[#71717A] hover:text-[#18181B] transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Settings2 size={13} /> {t("advancedSettings")}
+                      </span>
+                      {showAdvanced ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                    </button>
+
+                    {showAdvanced && (
+                      <div className="px-4 sm:px-6 pb-5 space-y-4">
+                        {mediaType === "video" ? (
+                          <React.Fragment>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-[10px] sm:text-[11px] text-[#71717A] mb-1.5">{t("cameraMovement")}</label>
+                                <select value={cameraMovement} onChange={(e) => setCameraMovement(e.target.value)} className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-2 text-[12px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]">
+                                  {CAMERA_MOVEMENTS.map((c) => (
+                                    <option key={c} value={c}>{t(CAMERA_MOVEMENT_LABEL_KEYS[c])}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-[10px] sm:text-[11px] text-[#71717A] mb-1.5">{t("cameraType")}</label>
+                                <select value={cameraType} onChange={(e) => setCameraType(e.target.value)} className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-2 text-[12px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors cursor-pointer text-[#18181B]">
+                                  {CAMERA_TYPES.map((c) => (
+                                    <option key={c} value={c}>{t(CAMERA_TYPE_LABEL_KEYS[c])}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] sm:text-[11px] text-[#71717A] mb-1.5">{t("motionLevel")}</label>
+                              <div className="flex gap-2">
+                                {MOTION_LEVELS.map((m) => (
+                                  <button
+                                    key={m}
+                                    onClick={() => setMotionLevel(m)}
+                                    className="flex-1 text-[12px] font-medium py-2 rounded-lg border transition-colors"
+                                    style={
+                                      motionLevel === m
+                                        ? { background: "rgba(139,92,246,0.1)", borderColor: "#8B5CF6", color: "#7C3AED" }
+                                        : { background: "#F7F7FA", borderColor: "#E4E4E7", color: "#71717A" }
+                                    }
+                                  >
+                                    {t(MOTION_LEVEL_LABEL_KEYS[m])}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <label className="text-[10px] sm:text-[11px] text-[#71717A]">{t("cfgScale")}</label>
+                                <span className="text-[11px] text-[#7C3AED] font-medium">{cfgScale.toFixed(2)}</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.05"
+                                value={cfgScale}
+                                onChange={(e) => setCfgScale(parseFloat(e.target.value))}
+                                className="w-full accent-[#8B5CF6]"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] sm:text-[11px] text-[#71717A] mb-1.5">{t("negativePrompt")}</label>
+                              <input
+                                type="text"
+                                value={negativePrompt}
+                                onChange={(e) => setNegativePrompt(e.target.value)}
+                                placeholder={t("negativePromptPlaceholder")}
+                                className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-3 py-2 text-[12px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors text-[#18181B]"
+                              />
+                            </div>
+                          </React.Fragment>
+                        ) : (
+                          <React.Fragment>
+                            <div>
+                              <label className="block text-[10px] sm:text-[11px] text-[#71717A] mb-1.5">{t("seed")}</label>
+                              <input
+                                type="number"
+                                value={seed}
+                                onChange={(e) => setSeed(e.target.value)}
+                                placeholder={t("seedPlaceholder")}
+                                className="w-full bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-3 py-2 text-[12px] sm:text-[13px] outline-none focus:border-[#8B5CF6] transition-colors text-[#18181B]"
+                              />
+                            </div>
+
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <label className="text-[10px] sm:text-[11px] text-[#71717A]">{t("guidance")}</label>
+                                <span className="text-[11px] text-[#7C3AED] font-medium">{guidance.toFixed(1)}</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="0"
+                                max="10"
+                                step="0.5"
+                                value={guidance}
+                                onChange={(e) => setGuidance(parseFloat(e.target.value))}
+                                className="w-full accent-[#8B5CF6]"
+                              />
+                            </div>
+                          </React.Fragment>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {credits === 0 && (
@@ -1054,12 +1138,12 @@ export default function App() {
                 {status === "generating" ? (
                   <React.Fragment>
                     <Loader2 size={19} className="animate-spin" />
-                    {mediaType === "video" ? t("generating") : t("generatingImageText")}
+                    {mediaType === "video" ? t("generating") : mediaType === "music" ? t("generatingMusicText") : t("generatingImageText")}
                   </React.Fragment>
                 ) : (
                   <React.Fragment>
                     <Zap size={19} />
-                    {mediaType === "video" ? t("generateVideo") : t("generateImage")}
+                    {mediaType === "video" ? t("generateVideo") : mediaType === "music" ? t("generateMusic") : t("generateImage")}
                   </React.Fragment>
                 )}
               </button>
@@ -1104,10 +1188,10 @@ export default function App() {
                     </div>
                     <div className="text-center">
                       <p className="text-[13px] sm:text-[14px] text-[#18181B] font-medium mb-1">
-                        {mediaType === "video" ? t("generating") : t("generatingImageText")}
+                        {mediaType === "video" ? t("generating") : mediaType === "music" ? t("generatingMusicText") : t("generatingImageText")}
                       </p>
                       <p className="text-[12px] sm:text-[13px] text-[#71717A]">{currentStageLabel()}</p>
-                      <p className="text-[11px] text-[#A1A1AA] mt-1">{styleLabelDisplay}</p>
+                      {mediaType !== "music" && <p className="text-[11px] text-[#A1A1AA] mt-1">{styleLabelDisplay}</p>}
                     </div>
                     <div className="w-full h-1.5 rounded-full bg-[#E4E4E7] mt-5 overflow-hidden">
                       <div
@@ -1126,6 +1210,11 @@ export default function App() {
                 ) : latestItem ? (
                   latestItem.type === "image" ? (
                     <img src={latestItem.url} alt="" className="w-full h-full object-cover" />
+                  ) : latestItem.type === "music" ? (
+                    <div className="w-full px-6 text-center">
+                      <Music2 size={40} className="text-[#7C3AED] mx-auto mb-4" />
+                      <audio src={latestItem.url} controls className="w-full" />
+                    </div>
                   ) : (
                     <video src={latestItem.url} controls className="w-full h-full object-cover" />
                   )
@@ -1135,9 +1224,11 @@ export default function App() {
                       <Film size={22} className="text-[#7C3AED]" />
                     </div>
                     <p className="text-[13px] sm:text-[14px] text-[#18181B] font-medium mb-1">
-                      {mediaType === "video" ? t("videoAppearsHere") : t("imageAppearsHere")}
+                      {mediaType === "video" ? t("videoAppearsHere") : mediaType === "music" ? t("musicAppearsHere") : t("imageAppearsHere")}
                     </p>
-                    <p className="text-[11px] sm:text-[12px] text-[#A1A1AA]">{t("startTyping")}</p>
+                    <p className="text-[11px] sm:text-[12px] text-[#A1A1AA]">
+                      {mediaType === "music" ? t("startTypingMusic") : t("startTyping")}
+                    </p>
                   </div>
                 )}
               </div>

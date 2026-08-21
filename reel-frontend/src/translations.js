@@ -198,6 +198,20 @@ export const translations = {
     stageComposing: "Kompozitsiya yaratilmoqda",
     stageDetails: "Detallar ishlanmoqda",
     stageFinalizing: "Yakunlanmoqda",
+
+    // Music generation
+    modeMusic: "Musiqa",
+    musicPromptPlaceholder: "Masalan: tinch, lirik piano musiqasi, sokin kayfiyat...",
+    musicDuration: "Davomiyligi (soniya)",
+    generateMusic: "Musiqa yaratish",
+    generatingMusicText: "Musiqa yaratilmoqda",
+    musicNotStarted: "Musiqa jarayoni boshlanmadi.",
+    musicGenerationFailed: "Musiqa yaratish muvaffaqiyatsiz tugadi",
+    musicAppearsHere: "Musiqa shu yerda ko'rinadi",
+    startTypingMusic: "Chapdagi maydonga musiqa tavsifini yozib boshlang",
+    stageComposingMusic: "Ohang yaratilmoqda",
+    stageArranging: "Asboblar tanlanmoqda",
+    stageMixing: "Aralashtirilmoqda",
   },
 
   ru: {
@@ -381,6 +395,20 @@ export const translations = {
     stageComposing: "Создание композиции",
     stageDetails: "Обработка деталей",
     stageFinalizing: "Завершение",
+
+    // Music generation
+    modeMusic: "Музыка",
+    musicPromptPlaceholder: "Например: спокойная лирическая фортепианная музыка, умиротворённое настроение...",
+    musicDuration: "Длительность (сек)",
+    generateMusic: "Создать музыку",
+    generatingMusicText: "Музыка создаётся",
+    musicNotStarted: "Процесс создания музыки не запущен.",
+    musicGenerationFailed: "Не удалось создать музыку",
+    musicAppearsHere: "Музыка появится здесь",
+    startTypingMusic: "Начните с описания музыки в поле слева",
+    stageComposingMusic: "Создание мелодии",
+    stageArranging: "Подбор инструментов",
+    stageMixing: "Сведение",
   },
 
   en: {
@@ -564,5 +592,19 @@ export const translations = {
     stageComposing: "Creating composition",
     stageDetails: "Processing details",
     stageFinalizing: "Finalizing",
+
+    // Music generation
+    modeMusic: "Music",
+    musicPromptPlaceholder: "E.g. calm lyrical piano music, peaceful mood...",
+    musicDuration: "Duration (seconds)",
+    generateMusic: "Generate music",
+    generatingMusicText: "Generating music",
+    musicNotStarted: "Music generation did not start.",
+    musicGenerationFailed: "Music generation failed",
+    musicAppearsHere: "Your music will appear here",
+    startTypingMusic: "Start by describing music on the left",
+    stageComposingMusic: "Composing melody",
+    stageArranging: "Choosing instruments",
+    stageMixing: "Mixing",
   },
 };
