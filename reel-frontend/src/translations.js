@@ -189,6 +189,15 @@ export const translations = {
     filterVideos: "Videolar",
     filterImages: "Rasmlar",
     noResults: "Hech narsa topilmadi",
+
+    // Progress stages
+    stageScene: "Sahna yaratilmoqda",
+    stageMotion: "Harakat hisoblanmoqda",
+    stageLighting: "Yorug'lik sozlanmoqda",
+    stageRender: "Yakuniy render",
+    stageComposing: "Kompozitsiya yaratilmoqda",
+    stageDetails: "Detallar ishlanmoqda",
+    stageFinalizing: "Yakunlanmoqda",
   },
 
   ru: {
@@ -363,6 +372,15 @@ export const translations = {
     filterVideos: "Видео",
     filterImages: "Изображения",
     noResults: "Ничего не найдено",
+
+    // Progress stages
+    stageScene: "Создание сцены",
+    stageMotion: "Расчёт движения",
+    stageLighting: "Настройка освещения",
+    stageRender: "Финальный рендер",
+    stageComposing: "Создание композиции",
+    stageDetails: "Обработка деталей",
+    stageFinalizing: "Завершение",
   },
 
   en: {
@@ -537,5 +555,14 @@ export const translations = {
     filterVideos: "Videos",
     filterImages: "Images",
     noResults: "Nothing found",
+
+    // Progress stages
+    stageScene: "Generating scene",
+    stageMotion: "Calculating motion",
+    stageLighting: "Setting up lighting",
+    stageRender: "Final render",
+    stageComposing: "Creating composition",
+    stageDetails: "Processing details",
+    stageFinalizing: "Finalizing",
   },
 };

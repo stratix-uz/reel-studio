@@ -56,6 +56,19 @@ const TEMPLATE_IDS = [
   "template3d",
 ];
 
+// Progress bosqichlari: [foiz chegarasi, matn kaliti]
+const VIDEO_STAGES = [
+  [0, "stageScene"],
+  [30, "stageMotion"],
+  [60, "stageLighting"],
+  [85, "stageRender"],
+];
+const IMAGE_STAGES = [
+  [0, "stageComposing"],
+  [40, "stageDetails"],
+  [75, "stageFinalizing"],
+];
+
 function BackgroundGlow() {
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
@@ -316,6 +329,10 @@ export default function App() {
   const abortRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // Progress simulyatsiyasi
+  const [progress, setProgress] = useState(0);
+  const progressIntervalRef = useRef(null);
+
   // Kengaytirilgan sozlamalar
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [cameraMovement, setCameraMovement] = useState("none");
@@ -332,7 +349,7 @@ export default function App() {
 
   // Kutubxona: qidirish va filtr
   const [librarySearch, setLibrarySearch] = useState("");
-  const [libraryFilter, setLibraryFilter] = useState("all"); // all | favorites | videos | images
+  const [libraryFilter, setLibraryFilter] = useState("all");
 
   const RATIOS = mediaType === "video" ? VIDEO_RATIOS : IMAGE_RATIOS;
 
@@ -386,6 +403,47 @@ export default function App() {
     });
     return () => unsub();
   }, []);
+
+  // Progressni boshqarish: generatsiya boshlanganda taxminiy vaqt bo'yicha o'sadi
+  useEffect(() => {
+    if (status === "generating") {
+      setProgress(0);
+      const estimatedMs = mediaType === "video" ? (duration === "10s" ? 150000 : 90000) : 15000;
+      const tickMs = 400;
+      const maxProgress = 95;
+      const increment = (maxProgress / (estimatedMs / tickMs));
+
+      progressIntervalRef.current = setInterval(() => {
+        setProgress((p) => {
+          const next = p + increment * (0.6 + Math.random() * 0.8);
+          return next >= maxProgress ? maxProgress : next;
+        });
+      }, tickMs);
+    } else {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      if (status === "done") {
+        setProgress(100);
+      } else {
+        setProgress(0);
+      }
+    }
+    return () => {
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  function currentStageLabel() {
+    const stages = mediaType === "video" ? VIDEO_STAGES : IMAGE_STAGES;
+    let label = stages[0][1];
+    for (const [threshold, key] of stages) {
+      if (progress >= threshold) label = key;
+    }
+    return t(label);
+  }
 
   async function handleLogin() {
     setLoginLoading(true);
@@ -1021,17 +1079,48 @@ export default function App() {
             <div className="lg:sticky lg:top-24">
               <div className="rounded-2xl overflow-hidden aspect-[9/13] max-w-[380px] mx-auto lg:max-w-none flex items-center justify-center relative" style={{ border: "1px solid #E4E4E7", background: "linear-gradient(160deg, rgba(139,92,246,.10), rgba(59,130,246,.08) 50%, rgba(236,72,153,.08))" }}>
                 {status === "generating" ? (
-                  <div className="text-center px-6">
-                    <div className="flex gap-1.5 justify-center mb-4">
-                      <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" style={{ animation: "pulse-dot 1.2s ease-in-out infinite" }} />
-                      <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" style={{ animation: "pulse-dot 1.2s ease-in-out infinite 0.2s" }} />
-                      <span className="w-2 h-2 rounded-full bg-[#8B5CF6]" style={{ animation: "pulse-dot 1.2s ease-in-out infinite 0.4s" }} />
+                  <div className="w-full px-6 sm:px-8">
+                    <div className="flex items-center justify-center mb-5">
+                      <div className="relative w-16 h-16">
+                        <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+                          <circle cx="32" cy="32" r="28" fill="none" stroke="#E4E4E7" strokeWidth="5" />
+                          <circle
+                            cx="32"
+                            cy="32"
+                            r="28"
+                            fill="none"
+                            stroke="#8B5CF6"
+                            strokeWidth="5"
+                            strokeLinecap="round"
+                            strokeDasharray={2 * Math.PI * 28}
+                            strokeDashoffset={2 * Math.PI * 28 * (1 - progress / 100)}
+                            style={{ transition: "stroke-dashoffset 0.4s ease" }}
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-[13px] font-semibold text-[#7C3AED]">{Math.round(progress)}%</span>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-[13px] sm:text-[14px] text-[#71717A]">
-                      {mediaType === "video" ? `${styleLabelDisplay} ${t("generatingStyle")}` : `${styleLabelDisplay} ${t("generatingImageText")}`}
-                    </p>
+                    <div className="text-center">
+                      <p className="text-[13px] sm:text-[14px] text-[#18181B] font-medium mb-1">
+                        {mediaType === "video" ? t("generating") : t("generatingImageText")}
+                      </p>
+                      <p className="text-[12px] sm:text-[13px] text-[#71717A]">{currentStageLabel()}</p>
+                      <p className="text-[11px] text-[#A1A1AA] mt-1">{styleLabelDisplay}</p>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-[#E4E4E7] mt-5 overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${progress}%`,
+                          background: "linear-gradient(90deg, #8B5CF6, #3B82F6)",
+                          transition: "width 0.4s ease",
+                        }}
+                      />
+                    </div>
                     {mediaType === "video" && (
-                      <p className="text-[11px] sm:text-[12px] text-[#A1A1AA] mt-2">{t("generatingTime")}</p>
+                      <p className="text-[11px] sm:text-[12px] text-[#A1A1AA] mt-3 text-center">{t("generatingTime")}</p>
                     )}
                   </div>
                 ) : latestItem ? (
