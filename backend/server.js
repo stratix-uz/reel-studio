@@ -53,6 +53,47 @@ const IMAGE_ASPECT_MAP = {
   "21:9": "21:9",
 };
 
+// Kamera harakati/turi/kuchi -> promptga qo'shiladigan ingliz tilidagi tavsif
+const CAMERA_MOVEMENT_TEXT = {
+  none: "",
+  zoom_in: "slow cinematic zoom in",
+  zoom_out: "slow cinematic zoom out",
+  pan_left: "smooth camera pan to the left",
+  pan_right: "smooth camera pan to the right",
+  tilt: "gentle camera tilt movement",
+  orbit: "camera orbiting around the subject",
+  static: "static locked camera shot",
+};
+
+const CAMERA_TYPE_TEXT = {
+  none: "",
+  cinematic: "cinematic camera",
+  drone: "aerial drone shot",
+  handheld: "handheld camera style",
+  fpv: "FPV first-person camera style",
+};
+
+const MOTION_LEVEL_TEXT = {
+  low: "subtle, slow motion",
+  medium: "natural, moderate motion",
+  high: "dynamic, fast-paced motion",
+};
+
+function buildVideoPromptExtras(advanced) {
+  if (!advanced) return "";
+  const parts = [];
+  if (advanced.cameraMovement && CAMERA_MOVEMENT_TEXT[advanced.cameraMovement]) {
+    parts.push(CAMERA_MOVEMENT_TEXT[advanced.cameraMovement]);
+  }
+  if (advanced.cameraType && CAMERA_TYPE_TEXT[advanced.cameraType]) {
+    parts.push(CAMERA_TYPE_TEXT[advanced.cameraType]);
+  }
+  if (advanced.motionLevel && MOTION_LEVEL_TEXT[advanced.motionLevel]) {
+    parts.push(MOTION_LEVEL_TEXT[advanced.motionLevel]);
+  }
+  return parts.length ? ", " + parts.join(", ") : "";
+}
+
 // Promptni avtomatik inglizchaga tarjima qilish
 async function translateToEnglish(text) {
   try {
@@ -73,7 +114,7 @@ const orders = {};
 
 // ============ VIDEO GENERATSIYA: BOSHLASH ============
 app.post("/api/generate-video/start", async (req, res) => {
-  const { prompt, style, duration, ratio } = req.body;
+  const { prompt, style, duration, ratio, advanced } = req.body;
 
   if (!prompt || prompt.trim().length < 3) {
     return res.status(400).json({ error: "Prompt juda qisqa" });
@@ -82,7 +123,21 @@ app.post("/api/generate-video/start", async (req, res) => {
     return res.status(500).json({ error: "REPLICATE_API_TOKEN sozlanmagan (.env faylini tekshiring)" });
   }
 
-  const fullPrompt = `${prompt}, ${style} style`;
+  const cameraExtras = buildVideoPromptExtras(advanced);
+  const fullPrompt = `${prompt}, ${style} style${cameraExtras}`;
+
+  const input = {
+    prompt: fullPrompt,
+    duration: parseInt(duration) || 6,
+    aspect_ratio: ratio || "16:9",
+  };
+
+  if (advanced && advanced.negativePrompt && advanced.negativePrompt.trim()) {
+    input.negative_prompt = advanced.negativePrompt.trim();
+  }
+  if (advanced && typeof advanced.cfgScale === "number" && advanced.cfgScale >= 0 && advanced.cfgScale <= 1) {
+    input.cfg_scale = advanced.cfgScale;
+  }
 
   try {
     const createRes = await fetch("https://api.replicate.com/v1/models/" + VIDEO_MODEL_VERSION + "/predictions", {
@@ -91,13 +146,7 @@ app.post("/api/generate-video/start", async (req, res) => {
         Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        input: {
-          prompt: fullPrompt,
-          duration: parseInt(duration) || 6,
-          aspect_ratio: ratio || "16:9",
-        },
-      }),
+      body: JSON.stringify({ input }),
     });
 
     if (!createRes.ok) {
@@ -138,7 +187,7 @@ app.get("/api/generate-video/status/:id", async (req, res) => {
 
 // ============ RASM GENERATSIYA: BOSHLASH ============
 app.post("/api/generate-image/start", async (req, res) => {
-  const { prompt, style, ratio } = req.body;
+  const { prompt, style, ratio, advanced } = req.body;
 
   if (!prompt || prompt.trim().length < 3) {
     return res.status(400).json({ error: "Prompt juda qisqa" });
@@ -151,6 +200,19 @@ app.post("/api/generate-image/start", async (req, res) => {
   const fullPrompt = `${translatedPrompt}, ${style} style`;
   const aspectRatio = IMAGE_ASPECT_MAP[ratio] || "1:1";
 
+  const input = {
+    prompt: fullPrompt,
+    aspect_ratio: aspectRatio,
+    output_format: "png",
+  };
+
+  if (advanced && Number.isInteger(advanced.seed)) {
+    input.seed = advanced.seed;
+  }
+  if (advanced && typeof advanced.guidance === "number" && advanced.guidance >= 0 && advanced.guidance <= 10) {
+    input.guidance = advanced.guidance;
+  }
+
   try {
     const createRes = await fetch("https://api.replicate.com/v1/models/" + IMAGE_MODEL_VERSION + "/predictions", {
       method: "POST",
@@ -158,13 +220,7 @@ app.post("/api/generate-image/start", async (req, res) => {
         Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        input: {
-          prompt: fullPrompt,
-          aspect_ratio: aspectRatio,
-          output_format: "png",
-        },
-      }),
+      body: JSON.stringify({ input }),
     });
 
     if (!createRes.ok) {
@@ -393,7 +449,6 @@ app.post("/api/click/complete", async (req, res) => {
       { merge: true }
     );
 
-    // Sotuvlar tarixiga yozamiz (admin panel uchun)
     await db.collection("purchases").add({
       uid: order.uid,
       planId: order.planId,
