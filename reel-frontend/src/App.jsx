@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X, Smartphone, Video, Image as ImageIcon, WandSparkles, Settings2, ChevronDown, ChevronUp } from "lucide-react";
+import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X, Smartphone, Video, Image as ImageIcon, WandSparkles, Settings2, ChevronDown, ChevronUp, Upload, Trash2 } from "lucide-react";
 import { auth, googleProvider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, addDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
@@ -258,6 +258,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const abortRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Kengaytirilgan sozlamalar
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -269,12 +270,20 @@ export default function App() {
   const [seed, setSeed] = useState("");
   const [guidance, setGuidance] = useState(3.5);
 
+  // Rasm -> Video
+  const [startImage, setStartImage] = useState(null); // base64 data URI
+  const [startImagePreview, setStartImagePreview] = useState(null);
+
   const RATIOS = mediaType === "video" ? VIDEO_RATIOS : IMAGE_RATIOS;
 
   useEffect(() => {
     const list = mediaType === "video" ? VIDEO_RATIOS : IMAGE_RATIOS;
     if (!list.includes(ratio)) {
       setRatio(list[0]);
+    }
+    if (mediaType === "image") {
+      setStartImage(null);
+      setStartImagePreview(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mediaType]);
@@ -338,6 +347,28 @@ export default function App() {
 
   const canGenerate = prompt.trim().length > 3 && status !== "generating" && credits > 0;
 
+  function handleImageUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMsg("Rasm hajmi 10MB dan oshmasligi kerak");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setStartImage(reader.result);
+      setStartImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeStartImage() {
+    setStartImage(null);
+    setStartImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
   async function generateVideo() {
     setStatus("generating");
     setErrorMsg("");
@@ -350,10 +381,13 @@ export default function App() {
         negativePrompt,
       };
 
+      const body = { prompt, style, duration, ratio, uid: user.uid, advanced };
+      if (startImage) body.startImage = startImage;
+
       const startRes = await fetch(`${BACKEND_BASE}/api/generate-video/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, style, duration, ratio, uid: user.uid, advanced }),
+        body: JSON.stringify(body),
       });
       if (!startRes.ok) throw new Error(`${t("serverError")}: ${startRes.status}`);
       const startData = await startRes.json();
@@ -653,6 +687,44 @@ export default function App() {
                   ))}
                 </div>
               </div>
+
+              {mediaType === "video" && (
+                <div className="mb-5">
+                  <label className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium tracking-[0.08em] uppercase mb-2.5 text-[#71717A]">
+                    <ImageIcon size={11} /> {t("startImageLabel")}
+                  </label>
+                  {startImagePreview ? (
+                    <div className="flex items-center gap-3 bg-white border rounded-xl p-2.5" style={{ borderColor: "#E4E4E7" }}>
+                      <img src={startImagePreview} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] text-[#71717A]">{t("imageToVideoHint")}</p>
+                      </div>
+                      <button
+                        onClick={removeStartImage}
+                        className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-[#A1A1AA] hover:text-[#DC2626] hover:bg-[#FEE2E2] transition-colors"
+                        aria-label={t("removeImage")}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2 text-[12px] font-medium text-[#71717A] bg-white border border-dashed rounded-xl px-4 py-3 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors w-full sm:w-auto"
+                      style={{ borderColor: "#E4E4E7" }}
+                    >
+                      <Upload size={14} /> {t("uploadImage")}
+                    </button>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </div>
+              )}
 
               <div className="rounded-2xl overflow-hidden bg-white" style={{ border: "1px solid #E4E4E7", boxShadow: "0 4px 30px rgba(139,92,246,.08)" }}>
                 <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-2">

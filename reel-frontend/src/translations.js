@@ -171,6 +171,12 @@ export const translations = {
     motionLow: "Past",
     motionMedium: "O'rtacha",
     motionHigh: "Yuqori",
+
+    // Image to Video
+    startImageLabel: "Boshlang'ich rasm (ixtiyoriy)",
+    uploadImage: "Rasm yuklash",
+    removeImage: "O'chirish",
+    imageToVideoHint: "Yuklangan rasmdan video yaratiladi",
   },
 
   ru: {
@@ -327,6 +333,12 @@ export const translations = {
     motionLow: "Низкий",
     motionMedium: "Средний",
     motionHigh: "Высокий",
+
+    // Image to Video
+    startImageLabel: "Начальное изображение (необязательно)",
+    uploadImage: "Загрузить изображение",
+    removeImage: "Удалить",
+    imageToVideoHint: "Видео будет создано на основе загруженного изображения",
   },
 
   en: {
@@ -483,5 +495,11 @@ export const translations = {
     motionLow: "Low",
     motionMedium: "Medium",
     motionHigh: "High",
+
+    // Image to Video
+    startImageLabel: "Start image (optional)",
+    uploadImage: "Upload image",
+    removeImage: "Remove",
+    imageToVideoHint: "Video will be generated from the uploaded image",
   },
 };
