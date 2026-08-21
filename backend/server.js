@@ -20,6 +20,7 @@ app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const VIDEO_MODEL_VERSION = "kwaivgi/kling-v1.6-standard";
 const IMAGE_MODEL_VERSION = "black-forest-labs/flux-dev";
+const MUSIC_MODEL_VERSION = "meta/musicgen";
 
 const CLICK_SERVICE_ID = process.env.CLICK_SERVICE_ID;
 const CLICK_MERCHANT_ID = process.env.CLICK_MERCHANT_ID;
@@ -139,7 +140,6 @@ app.post("/api/generate-video/start", async (req, res) => {
     input.cfg_scale = advanced.cfgScale;
   }
 
-  // Rasm -> video: agar foydalanuvchi boshlang'ich rasm yuklagan bo'lsa
   if (startImage && typeof startImage === "string" && startImage.startsWith("data:image")) {
     input.start_image = startImage;
   }
@@ -264,6 +264,74 @@ app.get("/api/generate-image/status/:id", async (req, res) => {
   }
 });
 
+// ============ MUSIQA GENERATSIYA: BOSHLASH ============
+app.post("/api/generate-music/start", async (req, res) => {
+  const { prompt, musicDuration } = req.body;
+
+  if (!prompt || prompt.trim().length < 3) {
+    return res.status(400).json({ error: "Prompt juda qisqa" });
+  }
+  if (!REPLICATE_API_TOKEN) {
+    return res.status(500).json({ error: "REPLICATE_API_TOKEN sozlanmagan (.env faylini tekshiring)" });
+  }
+
+  const translatedPrompt = await translateToEnglish(prompt);
+  const dur = Math.min(Math.max(parseInt(musicDuration) || 8, 4), 30);
+
+  try {
+    const createRes = await fetch("https://api.replicate.com/v1/models/" + MUSIC_MODEL_VERSION + "/predictions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        input: {
+          prompt: translatedPrompt,
+          duration: dur,
+          model_version: "stereo-large",
+          output_format: "mp3",
+          normalization_strategy: "peak",
+        },
+      }),
+    });
+
+    if (!createRes.ok) {
+      const errText = await createRes.text();
+      throw new Error(`Replicate xatosi: ${errText}`);
+    }
+
+    const prediction = await createRes.json();
+    res.json({ predictionId: prediction.id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============ MUSIQA GENERATSIYA: HOLATNI TEKSHIRISH ============
+app.get("/api/generate-music/status/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
+      headers: { Authorization: `Bearer ${REPLICATE_API_TOKEN}` },
+    });
+    const prediction = await pollRes.json();
+
+    if (prediction.status === "succeeded") {
+      const audioUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+      return res.json({ status: "succeeded", audioUrl });
+    }
+    if (prediction.status === "failed" || prediction.status === "canceled") {
+      return res.json({ status: "failed", error: prediction.error || "Musiqa yaratish muvaffaqiyatsiz tugadi" });
+    }
+    res.json({ status: prediction.status });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ============ AI: PROMPTNI YAXSHILASH ============
 app.post("/api/enhance-prompt", async (req, res) => {
   const { prompt, mediaType } = req.body;
@@ -275,12 +343,12 @@ app.post("/api/enhance-prompt", async (req, res) => {
     return res.status(500).json({ error: "ANTHROPIC_API_KEY sozlanmagan" });
   }
 
-  const kind = mediaType === "image" ? "image" : "video";
+  const kind = mediaType === "image" ? "image" : mediaType === "music" ? "music track" : "video";
 
-  const systemPrompt = `You are a professional prompt engineer for AI ${kind} generation (like Midjourney/Runway/Kling style). 
+  const systemPrompt = `You are a professional prompt engineer for AI ${kind} generation. 
 The user will give you a short idea, possibly in Uzbek, Russian, or English. 
-Rewrite it into a single, vivid, detailed, professional English prompt suitable for cinematic AI ${kind} generation. 
-Include visual details: lighting, camera angle/movement, mood, composition, quality descriptors. 
+Rewrite it into a single, vivid, detailed, professional English prompt suitable for AI ${kind} generation. 
+${kind === "music track" ? "Include musical details: genre, instruments, tempo, mood, energy." : "Include visual details: lighting, camera angle/movement, mood, composition, quality descriptors."} 
 Keep it to 1-3 sentences, no explanations, no quotes, just the final prompt text in English.`;
 
   try {
