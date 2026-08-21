@@ -144,6 +144,17 @@ function LoginScreen({ onLogin, loading, lang, setLang, t }) {
 }
 
 export default function App() {
+  // Referal ID'ni URL'dan ushlab qolish (masalan ?ref=1118725021)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      try {
+        localStorage.setItem("reelstudio_ref", ref);
+      } catch {}
+    }
+  }, []);
+
   const [lang, setLang] = useState(() => {
     try {
       return localStorage.getItem("reelstudio_lang") || "uz";
@@ -206,12 +217,17 @@ export default function App() {
         const userRef = doc(db, "users", firebaseUser.uid);
         const snap = await getDoc(userRef);
         if (!snap.exists()) {
+          let referredBy = null;
+          try {
+            referredBy = localStorage.getItem("reelstudio_ref") || null;
+          } catch {}
           await setDoc(userRef, {
             email: firebaseUser.email,
             name: firebaseUser.displayName,
             credits: 1,
             plan: "free",
             createdAt: new Date().toISOString(),
+            referredBy,
           });
           setCredits(1);
         } else {
