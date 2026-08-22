@@ -20,7 +20,7 @@ app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const VIDEO_MODEL_VERSION = "kwaivgi/kling-v1.6-standard";
 const IMAGE_MODEL_VERSION = "black-forest-labs/flux-dev";
-const MUSIC_MODEL_VERSION = "meta/musicgen";
+const MUSIC_MODEL_VERSION_HASH = "b05b1dff1d8c6dc63d14b0cdb42135378dcb87f6373b0d3d341ede46e59e2b38";
 
 const CLICK_SERVICE_ID = process.env.CLICK_SERVICE_ID;
 const CLICK_MERCHANT_ID = process.env.CLICK_MERCHANT_ID;
@@ -34,8 +34,9 @@ const PARTNER_SECRET_KEY = process.env.PARTNER_SECRET_KEY;
 const PARTNER_REFERRAL_ID = "1118725021";
 const PARTNER_DISCOUNT_PERCENT = 1; // faqat pro va max uchun
 
-// Tariflar: reja nomi -> narx (so'mda) va beriladigan kredit soni
+// Tariflar: reja nomi -> narx va beriladigan kredit soni
 const PLANS = {
+  small: { priceUzs: 35700, credits: 10 },
   basic: { priceUsd: 29.9, credits: 10 },
   standard: { priceUsd: 49.9, credits: 20 },
   pro: { priceUsd: 99.9, credits: 45 },
@@ -278,7 +279,7 @@ app.post("/api/generate-music/start", async (req, res) => {
   const translatedPrompt = await translateToEnglish(prompt);
   const dur = Math.min(Math.max(parseInt(musicDuration) || 8, 4), 30);
 
-    try {
+  try {
     const createRes = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -286,7 +287,7 @@ app.post("/api/generate-music/start", async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        version: "b05b1dff1d8c6dc63d14b0cdb42135378dcb87f6373b0d3d341ede46e59e2b38",
+        version: MUSIC_MODEL_VERSION_HASH,
         input: {
           prompt: translatedPrompt,
           duration: dur,
@@ -400,7 +401,7 @@ app.post("/api/click/create-order", async (req, res) => {
   const orderId = "order_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
 
   const usdToUzs = 12700;
-  let amountUzs = Math.round(plan.priceUsd * usdToUzs);
+  let amountUzs = plan.priceUzs ? plan.priceUzs : Math.round(plan.priceUsd * usdToUzs);
 
   // Referal orqali kelgan foydalanuvchilar uchun chegirma (faqat pro/max)
   let discountApplied = false;
