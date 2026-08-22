@@ -2,13 +2,14 @@ import React, { useState } from "react";
 import { X, Check, Sparkles, Loader2 } from "lucide-react";
 
 const BACKEND_URL = "https://reel-studio-production-b994.up.railway.app";
+const USD_TO_UZS = 12700;
 
 const PLAN_META = [
   { id: "small", nameKey: "planSmall", priceUzs: 35700, credits: "10", featured: false },
-  { id: "basic", nameKey: "planBasic", price: "29.90", perCredit: "0.037", credits: "800", featured: false },
-  { id: "standard", nameKey: "planStandard", price: "49.90", perCredit: "0.031", credits: "1,600", featured: true },
-  { id: "pro", nameKey: "planPro", price: "99.90", perCredit: "0.025", credits: "4,000", featured: false },
-  { id: "max", nameKey: "planMax", price: "199.90", perCredit: "0.020", credits: "10,000", featured: false },
+  { id: "basic", nameKey: "planBasic", priceUzs: Math.round(29.9 * USD_TO_UZS), credits: "800", featured: false },
+  { id: "standard", nameKey: "planStandard", priceUzs: Math.round(49.9 * USD_TO_UZS), credits: "1,600", featured: true },
+  { id: "pro", nameKey: "planPro", priceUzs: Math.round(99.9 * USD_TO_UZS), credits: "4,000", featured: false },
+  { id: "max", nameKey: "planMax", priceUzs: Math.round(199.9 * USD_TO_UZS), credits: "10,000", featured: false },
 ];
 
 const FEATURE_KEYS = ["featurePlan1", "featurePlan2", "featurePlan3", "featurePlan4"];
@@ -92,26 +93,12 @@ export default function Pricing({ onClose, uid, t }) {
                 )}
                 <h3 className="text-[15px] sm:text-[16px] text-[#18181B] mb-1">{translate(plan.nameKey)}</h3>
 
-                {plan.priceUzs ? (
-                  <React.Fragment>
-                    <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-[20px] sm:text-[22px] text-[#18181B] leading-none">{formatUzs(plan.priceUzs)}</span>
-                    </div>
-                    <p className="text-[11px] sm:text-[12px] text-[#A1A1AA] mb-4">
-                      {translate("perCredit")} {formatUzs(Math.round(plan.priceUzs / parseInt(plan.credits)))}
-                    </p>
-                  </React.Fragment>
-                ) : (
-                  <React.Fragment>
-                    <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-[24px] sm:text-[28px] text-[#18181B] leading-none">${plan.price}</span>
-                      <span className="text-[12px] sm:text-[13px] text-[#A1A1AA]">{translate("perMonth")}</span>
-                    </div>
-                    <p className="text-[11px] sm:text-[12px] text-[#A1A1AA] mb-4">
-                      {translate("perCredit")} ${plan.perCredit}
-                    </p>
-                  </React.Fragment>
-                )}
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-[20px] sm:text-[22px] text-[#18181B] leading-none">{formatUzs(plan.priceUzs)}</span>
+                </div>
+                <p className="text-[11px] sm:text-[12px] text-[#A1A1AA] mb-4">
+                  {translate("perCredit")} {formatUzs(Math.round(plan.priceUzs / parseInt(plan.credits.replace(/,/g, ""))))}
+                </p>
 
                 <div className="flex items-center gap-1.5 text-[12px] sm:text-[13px] text-[#71717A] mb-4 sm:mb-5 pb-4 sm:pb-5 border-b border-[#E4E4E7]">
                   <Sparkles size={13} className="text-[#7C3AED]" />
