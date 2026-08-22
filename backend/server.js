@@ -21,6 +21,7 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 const VIDEO_MODEL_VERSION = "kwaivgi/kling-v1.6-standard";
 const IMAGE_MODEL_VERSION = "black-forest-labs/flux-dev";
 const MUSIC_MODEL_VERSION_HASH = "b05b1dff1d8c6dc63d14b0cdb42135378dcb87f6373b0d3d341ede46e59e2b38";
+const UPSCALE_MODEL_VERSION = "black-forest-labs/flux-video-upscale";
 
 const CLICK_SERVICE_ID = process.env.CLICK_SERVICE_ID;
 const CLICK_MERCHANT_ID = process.env.CLICK_MERCHANT_ID;
@@ -257,6 +258,71 @@ app.get("/api/generate-image/status/:id", async (req, res) => {
     }
     if (prediction.status === "failed" || prediction.status === "canceled") {
       return res.json({ status: "failed", error: prediction.error || "Rasm yaratish muvaffaqiyatsiz tugadi" });
+    }
+    res.json({ status: prediction.status });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============ VIDEO SIFATINI OSHIRISH (UPSCALE): BOSHLASH ============
+app.post("/api/upscale-video/start", async (req, res) => {
+  const { videoUrl, creativity } = req.body;
+
+  if (!videoUrl || typeof videoUrl !== "string") {
+    return res.status(400).json({ error: "Video manzili yuborilmadi" });
+  }
+  if (!REPLICATE_API_TOKEN) {
+    return res.status(500).json({ error: "REPLICATE_API_TOKEN sozlanmagan" });
+  }
+
+  const creativityVal = typeof creativity === "number" ? Math.min(Math.max(creativity, 0), 1) : 1;
+
+  try {
+    const createRes = await fetch("https://api.replicate.com/v1/models/" + UPSCALE_MODEL_VERSION + "/predictions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${REPLICATE_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        input: {
+          video: videoUrl,
+          creativity: creativityVal,
+          upscale_factor: 2,
+        },
+      }),
+    });
+
+    if (!createRes.ok) {
+      const errText = await createRes.text();
+      throw new Error(`Replicate xatosi: ${errText}`);
+    }
+
+    const prediction = await createRes.json();
+    res.json({ predictionId: prediction.id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============ VIDEO SIFATINI OSHIRISH: HOLATNI TEKSHIRISH ============
+app.get("/api/upscale-video/status/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
+      headers: { Authorization: `Bearer ${REPLICATE_API_TOKEN}` },
+    });
+    const prediction = await pollRes.json();
+
+    if (prediction.status === "succeeded") {
+      const upscaledUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+      return res.json({ status: "succeeded", upscaledUrl });
+    }
+    if (prediction.status === "failed" || prediction.status === "canceled") {
+      return res.json({ status: "failed", error: prediction.error || "Sifatni oshirish muvaffaqiyatsiz tugadi" });
     }
     res.json({ status: prediction.status });
   } catch (err) {
