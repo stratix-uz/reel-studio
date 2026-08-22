@@ -213,6 +213,14 @@ export const translations = {
     stageComposingMusic: "Ohang yaratilmoqda",
     stageArranging: "Asboblar tanlanmoqda",
     stageMixing: "Aralashtirilmoqda",
+
+    // Video upscale
+    upscaleVideo: "Sifatni oshirish (2x)",
+    upscaling: "Sifat oshirilmoqda...",
+    upscaleFailed: "Sifatni oshirib bo'lmadi",
+    upscaleCreditsNeeded: "Bu funksiya 2 kredit talab qiladi",
+    upscaleSuccess: "Sifati oshirilgan video saqlandi",
+    upscaleCost: "2 kredit",
   },
 
   ru: {
@@ -411,6 +419,14 @@ export const translations = {
     stageComposingMusic: "Создание мелодии",
     stageArranging: "Подбор инструментов",
     stageMixing: "Сведение",
+
+    // Video upscale
+    upscaleVideo: "Улучшить качество (2x)",
+    upscaling: "Улучшение качества...",
+    upscaleFailed: "Не удалось улучшить качество",
+    upscaleCreditsNeeded: "Эта функция требует 2 кредита",
+    upscaleSuccess: "Видео с улучшенным качеством сохранено",
+    upscaleCost: "2 кредита",
   },
 
   en: {
@@ -609,5 +625,13 @@ export const translations = {
     stageComposingMusic: "Composing melody",
     stageArranging: "Choosing instruments",
     stageMixing: "Mixing",
+
+    // Video upscale
+    upscaleVideo: "Upscale quality (2x)",
+    upscaling: "Upscaling quality...",
+    upscaleFailed: "Could not upscale video",
+    upscaleCreditsNeeded: "This feature requires 2 credits",
+    upscaleSuccess: "Upscaled video saved",
+    upscaleCost: "2 credits",
   },
 };

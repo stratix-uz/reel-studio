@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X, Smartphone, Video, Image as ImageIcon, WandSparkles, Settings2, ChevronDown, ChevronUp, Upload, Trash2, Star, Copy, Check, Search, Music2 } from "lucide-react";
+import { Play, Download, Loader2, Sparkles, Clock, Ratio, Wand2, Clapperboard, LogOut, RefreshCw, Zap, Film, Globe, Menu, X, Smartphone, Video, Image as ImageIcon, WandSparkles, Settings2, ChevronDown, ChevronUp, Upload, Trash2, Star, Copy, Check, Search, Music2, ArrowUpCircle } from "lucide-react";
 import { auth, googleProvider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, addDoc, collection, query, orderBy, getDocs, updateDoc } from "firebase/firestore";
@@ -203,8 +203,9 @@ function LoginScreen({ onLogin, loading, lang, setLang, t }) {
   );
 }
 
-function LibraryCard({ item, t, styleLabel, status, credits, onRegenerate, onToggleFavorite }) {
+function LibraryCard({ item, t, styleLabel, status, credits, onRegenerate, onToggleFavorite, onUpscale, upscalingId }) {
   const [copied, setCopied] = useState(false);
+  const isUpscaling = upscalingId === item.id;
 
   function handleCopy() {
     navigator.clipboard?.writeText(item.prompt).then(() => {
@@ -253,13 +254,31 @@ function LibraryCard({ item, t, styleLabel, status, credits, onRegenerate, onTog
           {item.duration ? `${item.duration}` : ""}
           {item.type !== "music" && item.ratio ? ` · ${item.ratio}` : ""}
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <a href={item.url} download className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors">
             <Download size={13} /> {t("download")}
           </a>
           {item.type !== "music" && (
             <button onClick={() => onRegenerate(item)} disabled={status === "generating" || credits <= 0} className="flex items-center gap-1.5 text-[12px] font-medium text-[#18181B] bg-[#F7F7FA] border border-[#E4E4E7] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] hover:text-[#7C3AED] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
               <RefreshCw size={13} /> {t("regenerate")}
+            </button>
+          )}
+          {item.type === "video" && (
+            <button
+              onClick={() => onUpscale(item)}
+              disabled={isUpscaling || credits < 2}
+              title={t("upscaleCost")}
+              className="flex items-center gap-1.5 text-[12px] font-medium text-[#7C3AED] bg-[#F5F3FF] border border-[#DDD6FE] rounded-lg px-2.5 py-1.5 hover:border-[#8B5CF6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isUpscaling ? (
+                <React.Fragment>
+                  <Loader2 size={13} className="animate-spin" /> {t("upscaling")}
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  <ArrowUpCircle size={13} /> {t("upscaleVideo")}
+                </React.Fragment>
+              )}
             </button>
           )}
         </div>
@@ -331,7 +350,7 @@ export default function App() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [credits, setCredits] = useState(null);
 
-  const [mediaType, setMediaType] = useState("video"); // "video" | "image" | "music"
+  const [mediaType, setMediaType] = useState("video");
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState("cinematic");
   const [duration, setDuration] = useState("5s");
@@ -344,6 +363,7 @@ export default function App() {
   const [view, setView] = useState("create");
   const [menuOpen, setMenuOpen] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
+  const [upscalingId, setUpscalingId] = useState(null);
   const abortRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -675,6 +695,59 @@ export default function App() {
     } else {
       await generateVideo();
     }
+  }
+
+  async function handleUpscale(item) {
+    if (upscalingId || credits < 2) return;
+    setUpscalingId(item.id);
+    setErrorMsg("");
+    try {
+      const startRes = await fetch(`${BACKEND_BASE}/api/upscale-video/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoUrl: item.url, creativity: 1 }),
+      });
+      if (!startRes.ok) throw new Error(t("upscaleFailed"));
+      const startData = await startRes.json();
+      if (!startData.predictionId) throw new Error(t("upscaleFailed"));
+
+      const predictionId = startData.predictionId;
+      let upscaledUrl = null;
+
+      while (!upscaledUrl) {
+        await new Promise((r) => setTimeout(r, 3000));
+        const pollRes = await fetch(`${BACKEND_BASE}/api/upscale-video/status/${predictionId}`);
+        if (!pollRes.ok) throw new Error(t("upscaleFailed"));
+        const pollData = await pollRes.json();
+
+        if (pollData.status === "succeeded") {
+          upscaledUrl = pollData.upscaledUrl;
+        } else if (pollData.status === "failed") {
+          throw new Error(pollData.error || t("upscaleFailed"));
+        }
+      }
+
+      const userRef = doc(db, "users", user.uid);
+      const newCredits = Math.max(0, (credits ?? 0) - 2);
+      await setDoc(userRef, { credits: newCredits }, { merge: true });
+      setCredits(newCredits);
+
+      const contentDoc = {
+        url: upscaledUrl,
+        type: "video",
+        prompt: `${item.prompt} (Upscaled 2x)`,
+        style: item.style,
+        duration: item.duration,
+        ratio: item.ratio,
+        isFavorite: false,
+        createdAt: new Date().toISOString(),
+      };
+      const docRef = await addDoc(collection(db, "users", user.uid, "videos"), contentDoc);
+      setGallery((g) => [{ id: docRef.id, ...contentDoc }, ...g]);
+    } catch (err) {
+      setErrorMsg(err.message);
+    }
+    setUpscalingId(null);
   }
 
   async function handleToggleFavorite(item) {
@@ -1254,6 +1327,8 @@ export default function App() {
                   credits={credits}
                   onRegenerate={handleRegenerate}
                   onToggleFavorite={handleToggleFavorite}
+                  onUpscale={handleUpscale}
+                  upscalingId={upscalingId}
                 />
               ))}
             </div>
@@ -1329,6 +1404,8 @@ export default function App() {
                     credits={credits}
                     onRegenerate={handleRegenerate}
                     onToggleFavorite={handleToggleFavorite}
+                    onUpscale={handleUpscale}
+                    upscalingId={upscalingId}
                   />
                 ))}
               </div>
