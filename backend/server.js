@@ -18,8 +18,8 @@ app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
-const VIDEO_MODEL_VERSION = "kwaivgi/kling-v1.6-standard";
-const IMAGE_MODEL_VERSION = "black-forest-labs/flux-dev";
+const VIDEO_MODEL_VERSION = "kwaivgi/kling-v3-video";
+const IMAGE_MODEL_VERSION = "black-forest-labs/flux-2-pro";
 const MUSIC_MODEL_VERSION_HASH = "b05b1dff1d8c6dc63d14b0cdb42135378dcb87f6373b0d3d341ede46e59e2b38";
 const UPSCALE_MODEL_VERSION = "black-forest-labs/flux-video-upscale";
 
@@ -53,7 +53,7 @@ const IMAGE_ASPECT_MAP = {
   "9:16": "9:16",
   "1:1": "1:1",
   "4:5": "4:5",
-  "21:9": "21:9",
+  "21:9": "16:9",
 };
 
 // Kamera harakati/turi/kuchi -> promptga qo'shiladigan ingliz tilidagi tavsif
@@ -133,13 +133,14 @@ app.post("/api/generate-video/start", async (req, res) => {
     prompt: fullPrompt,
     duration: parseInt(duration) || 6,
     aspect_ratio: ratio || "16:9",
+    mode: "standard",
   };
 
   if (advanced && advanced.negativePrompt && advanced.negativePrompt.trim()) {
     input.negative_prompt = advanced.negativePrompt.trim();
   }
   if (advanced && typeof advanced.cfgScale === "number" && advanced.cfgScale >= 0 && advanced.cfgScale <= 1) {
-    input.cfg_scale = advanced.cfgScale;
+    // Kling 3.0 cfg_scale qabul qilmaydi
   }
 
   if (startImage && typeof startImage === "string" && startImage.startsWith("data:image")) {
@@ -217,7 +218,7 @@ app.post("/api/generate-image/start", async (req, res) => {
     input.seed = advanced.seed;
   }
   if (advanced && typeof advanced.guidance === "number" && advanced.guidance >= 0 && advanced.guidance <= 10) {
-    input.guidance = advanced.guidance;
+    // FLUX 2 Pro guidance qabul qilmaydi
   }
 
   try {
