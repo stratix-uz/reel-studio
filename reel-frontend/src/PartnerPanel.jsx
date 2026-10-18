@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Loader2, Users, CreditCard, TrendingUp, RefreshCw, Lock } from "lucide-react";
 
-const BACKEND_BASE = "https://reel-studio-production-b994.up.railway.app";
+const BACKEND_BASE = "https://api.reelstudio.uz";
 
 const PLAN_LABELS = {
   basic: "Asosiy",

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { X, Check, Sparkles, Loader2 } from "lucide-react";
 
-const BACKEND_URL = "https://reel-studio-production-b994.up.railway.app";
+const BACKEND_URL = "https://api.reelstudio.uz";
 const USD_TO_UZS = 12700;
 
 const PLAN_META = [

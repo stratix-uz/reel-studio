@@ -3,7 +3,7 @@ import { Loader2, Users, CreditCard, TrendingUp, LogOut, RefreshCw, Lock } from 
 import { auth, googleProvider, db } from "./firebase";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 
-const BACKEND_BASE = "https://reel-studio-production-b994.up.railway.app";
+const BACKEND_BASE = "https://api.reelstudio.uz";
 
 // Admin panelga kirish huquqiga ega email(lar)
 const ADMIN_EMAILS = ["bekxamrayev2024@gmail.com"];

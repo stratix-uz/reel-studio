@@ -39,7 +39,7 @@ const MOTION_LEVEL_LABEL_KEYS = {
   high: "motionHigh",
 };
 
-const BACKEND_BASE = "https://reel-studio-production-b994.up.railway.app";
+const BACKEND_BASE = "https://api.reelstudio.uz";
 const APK_URL = "/downloads/reelstudio.apk";
 
 const TEMPLATE_IDS = [
